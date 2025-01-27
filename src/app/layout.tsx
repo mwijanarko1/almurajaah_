@@ -4,6 +4,7 @@ import './globals.css'
 import { AuthProvider } from '@/app/lib/contexts/AuthContext'
 import { ThemeProvider } from '@/app/lib/contexts/ThemeContext'
 import ClientWrapper from './components/ClientWrapper'
+import { SpeedInsights } from '@vercel/speed-insights/next'
 
 const inter = Inter({ subsets: ['latin'] })
 
@@ -25,6 +26,7 @@ export default function RootLayout({
             <AuthProvider>
               {/* Navbar will be rendered inside individual pages where needed */}
               {children}
+              <SpeedInsights />
             </AuthProvider>
           </ClientWrapper>
         </ThemeProvider>

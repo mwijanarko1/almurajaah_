@@ -300,13 +300,18 @@ export default function Dashboard() {
     }
   }
 
-  const needsRevision = (progress: JuzProgress | SurahProgress) => {
-    if (!progress.lastRevised || !userProfile) return true
+  const needsRevision = (progress: JuzProgress | SurahProgress | null | undefined) => {
+    // If no progress or userProfile exists, consider it as needing revision
+    if (!progress || !userProfile) return true
+    
+    // If lastRevised doesn't exist, it needs revision
+    if (!progress.lastRevised) return true
+    
     const lastDate = new Date(progress.lastRevised)
     const today = new Date()
     const diffTime = Math.abs(today.getTime() - lastDate.getTime())
     const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24))
-    return diffDays >= userProfile.revisionCycle
+    return diffDays >= (userProfile.revisionCycle || 7) // Default to 7 days if revisionCycle not set
   }
 
   const items = useMemo(() => {
@@ -450,8 +455,11 @@ export default function Dashboard() {
 
   if (!userProfile) {
     return (
-      <div className="flex items-center justify-center min-h-screen bg-background">
-        <div className="text-text">Loading...</div>
+      <div className="flex items-center justify-center min-h-screen">
+        <div className="flex flex-col items-center gap-2">
+          <div className="w-8 h-8 border-4 border-emerald-600 border-t-transparent rounded-full animate-spin"></div>
+          <p className="text-emerald-900">Loading...</p>
+        </div>
       </div>
     )
   }
