@@ -30,6 +30,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<User | null>(null)
   const [loading, setLoading] = useState(true)
   const [isSetupComplete, setIsSetupComplete] = useState(false)
+  const [isAuthenticating, setIsAuthenticating] = useState(false)
   const router = useRouter()
 
   useEffect(() => {
@@ -47,34 +48,66 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }, [])
 
   const signUp = async (email: string, password: string, name: string) => {
-    const userCredential = await createUserWithEmailAndPassword(auth, email, password)
-    if (name) { // Only update profile if name is provided
-      await updateProfile(userCredential.user, { displayName: name })
+    setIsAuthenticating(true)
+    try {
+      const userCredential = await createUserWithEmailAndPassword(auth, email, password)
+      if (name) {
+        await updateProfile(userCredential.user, { displayName: name })
+      }
+    } finally {
+      setIsAuthenticating(false)
     }
   }
 
   const signIn = async (email: string, password: string) => {
-    await signInWithEmailAndPassword(auth, email, password)
+    setIsAuthenticating(true)
+    try {
+      await signInWithEmailAndPassword(auth, email, password)
+    } finally {
+      setIsAuthenticating(false)
+    }
   }
 
   const signInWithGoogle = async () => {
-    const provider = new GoogleAuthProvider()
-    const result = await signInWithPopup(auth, provider)
-    
-    // Check if user profile exists
-    const userProfileDoc = await getDoc(doc(db, 'userProfiles', result.user.uid))
-    if (!userProfileDoc.exists()) {
-      setIsSetupComplete(false)
+    setIsAuthenticating(true)
+    try {
+      const provider = new GoogleAuthProvider()
+      const result = await signInWithPopup(auth, provider)
+      
+      // Check if user profile exists
+      const userProfileDoc = await getDoc(doc(db, 'userProfiles', result.user.uid))
+      if (!userProfileDoc.exists()) {
+        setIsSetupComplete(false)
+      }
+    } catch (error: any) {
+      // Don't throw error if user just closed the popup
+      if (error.code !== 'auth/popup-closed-by-user') {
+        throw error
+      }
+    } finally {
+      setIsAuthenticating(false)
     }
   }
 
   const signOut = async () => {
-    await firebaseSignOut(auth)
-    router.push('/')
+    setIsAuthenticating(true)
+    try {
+      await firebaseSignOut(auth)
+      router.push('/')
+    } finally {
+      setIsAuthenticating(false)
+    }
   }
 
-  if (loading) {
-    return <div className="flex items-center justify-center min-h-screen">Loading...</div>
+  if (loading || isAuthenticating) {
+    return (
+      <div className="flex items-center justify-center min-h-screen">
+        <div className="flex flex-col items-center gap-2">
+          <div className="w-8 h-8 border-4 border-emerald-600 border-t-transparent rounded-full animate-spin"></div>
+          <p className="text-emerald-900">Loading...</p>
+        </div>
+      </div>
+    )
   }
 
   return (

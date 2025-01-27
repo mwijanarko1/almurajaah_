@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { useAuthContext } from '@/app/lib/contexts/AuthContext'
 import IslamicPattern from '@/app/components/ui/IslamicPattern'
+import { auth } from '@/app/lib/firebase/firebase'
 
 export default function AuthPage() {
   const [email, setEmail] = useState('')
@@ -33,17 +34,23 @@ export default function AuthPage() {
         await signIn(email, password)
         router.push(isSetupComplete ? '/dashboard' : '/profile-setup')
       }
-    } catch (err) {
-      setError('Failed to authenticate. Please check your credentials.')
+    } catch (err: any) {
+      console.error('Auth error:', err)
+      setError(err.message || 'Failed to authenticate. Please check your credentials.')
     }
   }
 
   const handleGoogleSignIn = async () => {
+    setError('')
     try {
       await signInWithGoogle()
-      router.push(isSetupComplete ? '/dashboard' : '/profile-setup')
-    } catch (err) {
-      setError('Failed to sign in with Google.')
+      // Only navigate if sign in was successful
+      if (auth.currentUser) {
+        router.push(isSetupComplete ? '/dashboard' : '/profile-setup')
+      }
+    } catch (err: any) {
+      console.error('Google sign in error:', err)
+      setError(err.message || 'Failed to sign in with Google.')
     }
   }
 
