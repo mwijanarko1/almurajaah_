@@ -4,7 +4,8 @@ import { createContext, useContext, useEffect, useState } from 'react'
 import {
   createUserWithEmailAndPassword,
   signInWithEmailAndPassword,
-  signInWithPopup,
+  signInWithRedirect,
+  getRedirectResult,
   GoogleAuthProvider,
   signOut as firebaseSignOut,
   onAuthStateChanged,
@@ -32,6 +33,50 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [isSetupComplete, setIsSetupComplete] = useState(false)
   const [isAuthenticating, setIsAuthenticating] = useState(false)
   const router = useRouter()
+
+  useEffect(() => {
+    const handleRedirectResult = async () => {
+      try {
+        const result = await getRedirectResult(auth)
+        if (result) {
+          console.log('Google redirect sign-in successful')
+          
+          // Check if user profile exists
+          console.log('Checking user profile...')
+          const userProfileDoc = await getDoc(doc(db, 'userProfiles', result.user.uid))
+          
+          if (!userProfileDoc.exists()) {
+            console.log('Creating new user profile...')
+            // Create new user profile for Google sign-in
+            await setDoc(doc(db, 'userProfiles', result.user.uid), {
+              name: result.user.displayName || '',
+              email: result.user.email,
+              setupCompleted: false,
+              memorizedJuz: [],
+              memorizedSurahs: [],
+              juzProgress: {},
+              surahProgress: {},
+              revisionCycle: 7
+            })
+            router.push('/profile-setup')
+          } else {
+            console.log('Existing user profile found')
+            const isSetupComplete = userProfileDoc.data()?.setupCompleted || false
+            router.push(isSetupComplete ? '/dashboard' : '/profile-setup')
+          }
+        }
+      } catch (error: any) {
+        console.error('Redirect sign-in error:', {
+          code: error.code,
+          message: error.message,
+          details: error
+        })
+      }
+    }
+
+    // Check for redirect result when component mounts
+    handleRedirectResult()
+  }, [router])
 
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, async (user) => {
@@ -84,43 +129,16 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     setIsAuthenticating(true)
     try {
       const provider = new GoogleAuthProvider()
-      console.log('Starting Google sign-in...')
-      const result = await signInWithPopup(auth, provider)
-      console.log('Google sign-in successful')
-      
-      // Check if user profile exists
-      console.log('Checking user profile...')
-      const userProfileDoc = await getDoc(doc(db, 'userProfiles', result.user.uid))
-      
-      if (!userProfileDoc.exists()) {
-        console.log('Creating new user profile...')
-        // Create new user profile for Google sign-in
-        await setDoc(doc(db, 'userProfiles', result.user.uid), {
-          name: result.user.displayName || '',
-          email: result.user.email,
-          setupCompleted: false,
-          memorizedJuz: [],
-          memorizedSurahs: [],
-          juzProgress: {},
-          surahProgress: {},
-          revisionCycle: 7
-        })
-        setIsSetupComplete(false)
-        console.log('User profile created successfully')
-      } else {
-        console.log('Existing user profile found')
-        setIsSetupComplete(userProfileDoc.data()?.setupCompleted || false)
-      }
+      console.log('Starting Google sign-in redirect...')
+      await signInWithRedirect(auth, provider)
+      // Note: The result will be handled in the useEffect above
     } catch (error: any) {
-      console.error('Detailed Google sign-in error:', {
+      console.error('Google sign-in redirect error:', {
         code: error.code,
         message: error.message,
         details: error
       })
-      // Don't throw error if user just closed the popup
-      if (error.code !== 'auth/popup-closed-by-user') {
-        throw error
-      }
+      throw error
     } finally {
       setIsAuthenticating(false)
     }
