@@ -12,7 +12,7 @@ import {
   User
 } from 'firebase/auth'
 import { auth, db } from '@/app/lib/firebase/firebase'
-import { doc, getDoc } from 'firebase/firestore'
+import { doc, getDoc, setDoc } from 'firebase/firestore'
 import { useRouter } from 'next/navigation'
 
 interface AuthContextType {
@@ -54,6 +54,18 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       if (name) {
         await updateProfile(userCredential.user, { displayName: name })
       }
+      
+      // Initialize user profile
+      await setDoc(doc(db, 'userProfiles', userCredential.user.uid), {
+        name: name || userCredential.user.displayName || '',
+        email: userCredential.user.email,
+        setupCompleted: false,
+        memorizedJuz: [],
+        memorizedSurahs: [],
+        juzProgress: {},
+        surahProgress: {},
+        revisionCycle: 7
+      })
     } finally {
       setIsAuthenticating(false)
     }
@@ -76,8 +88,22 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       
       // Check if user profile exists
       const userProfileDoc = await getDoc(doc(db, 'userProfiles', result.user.uid))
+      
       if (!userProfileDoc.exists()) {
+        // Create new user profile for Google sign-in
+        await setDoc(doc(db, 'userProfiles', result.user.uid), {
+          name: result.user.displayName || '',
+          email: result.user.email,
+          setupCompleted: false,
+          memorizedJuz: [],
+          memorizedSurahs: [],
+          juzProgress: {},
+          surahProgress: {},
+          revisionCycle: 7
+        })
         setIsSetupComplete(false)
+      } else {
+        setIsSetupComplete(userProfileDoc.data()?.setupCompleted || false)
       }
     } catch (error: any) {
       // Don't throw error if user just closed the popup
