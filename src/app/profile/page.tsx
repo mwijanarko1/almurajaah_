@@ -8,6 +8,8 @@ import { db } from '@/app/lib/firebase/firebase'
 import Navbar from '@/app/components/Navbar'
 import { ChevronDown, ChevronUp, Save, X } from 'lucide-react'
 import { juzData } from '@/app/lib/data/quranData'
+import PageLayout from '@/app/components/ui/PageLayout'
+import { motion } from 'framer-motion'
 
 interface UserProfile {
   memorizedJuz: number[]
@@ -44,7 +46,7 @@ interface Juz {
   surahs: Surah[]
 }
 
-export default function ProfilePage() {
+export default function Profile() {
   const { user } = useAuthContext()
   const router = useRouter()
   const [isLoading, setIsLoading] = useState(false)
@@ -236,162 +238,168 @@ export default function ProfilePage() {
   }
 
   return (
-    <div className="min-h-screen bg-background">
-      <Navbar />
-      <main className="container mx-auto px-4 py-8">
-        <div className="max-w-2xl mx-auto">
-          <div className="flex items-center justify-between mb-8">
-            <h1 className="text-3xl font-bold text-text">Profile Settings</h1>
-            <div className="flex gap-4">
-              <button
-                onClick={() => router.push('/dashboard')}
-                className="flex items-center gap-2 px-4 py-2 rounded-md bg-background text-text-secondary hover:bg-surface transition-colors"
-              >
-                <X className="w-4 h-4" />
-                Cancel
-              </button>
-              <button
-                onClick={handleSave}
-                disabled={!hasChanges || isLoading}
-                className="flex items-center gap-2 px-4 py-2 rounded-md bg-primary text-white hover:bg-secondary transition-colors disabled:bg-text-secondary"
-              >
-                <Save className="w-4 h-4" />
-                {isLoading ? 'Saving...' : 'Save Changes'}
-              </button>
-            </div>
-          </div>
-
-          {error && (
-            <div className="bg-red-500 bg-opacity-10 border border-red-500 text-red-500 px-4 py-2 rounded-md mb-4">
-              {error}
-            </div>
-          )}
-
-          {success && (
-            <div className="bg-green-500 bg-opacity-10 border border-green-500 text-green-500 px-4 py-2 rounded-md mb-4">
-              {success}
-            </div>
-          )}
-
-          <div className="bg-surface rounded-lg p-6 mb-8">
-            <div className="flex items-center justify-between mb-6">
-              <div>
-                <h2 className="text-xl font-semibold text-text">Memorized Juz & Surahs</h2>
-                <p className="text-text-secondary mt-1">Select the Juz or individual Surahs you have memorized</p>
-              </div>
-              <div className="text-text-secondary">
-                {memorizedJuz.length}/30 Juz
-              </div>
-            </div>
-
-            <div className="space-y-2 max-h-[400px] overflow-y-auto pr-2">
-              {Array.from({ length: 30 }, (_, i) => i + 1).map((juzNumber) => {
-                const juz = juzData.find(j => j.number === juzNumber)
-                const isExpanded = expandedJuz.includes(juzNumber)
-                
-                return (
-                  <div key={juzNumber} className="space-y-2">
-                    <div
-                      className="flex items-center justify-between p-3 rounded-lg bg-background hover:bg-surface transition-colors"
-                    >
-                      <div className="flex items-center gap-4">
-                        <button
-                          onClick={() => toggleExpand(juzNumber)}
-                          className="text-text-secondary hover:text-text transition-colors"
-                        >
-                          {isExpanded ? (
-                            <ChevronUp className="w-5 h-5" />
-                          ) : (
-                            <ChevronDown className="w-5 h-5" />
-                          )}
-                        </button>
-                        <span className="text-lg text-text">Juz {juzNumber}</span>
-                      </div>
-                      <button
-                        onClick={() => toggleJuz(juzNumber)}
-                        className={`w-12 h-6 rounded-full transition-colors relative ${
-                          memorizedJuz.includes(juzNumber) ? 'bg-[#2ECC71]' : 'bg-gray-600'
-                        }`}
-                      >
-                        <span
-                          className={`absolute top-1 left-1 w-4 h-4 rounded-full transition-transform bg-white ${
-                            memorizedJuz.includes(juzNumber) ? 'translate-x-6' : ''
-                          }`}
-                        />
-                      </button>
-                    </div>
-                    
-                    {/* Surahs List */}
-                    {isExpanded && juz && (
-                      <div className="ml-8 space-y-2">
-                        {juz.surahs.map((surah) => (
-                          <div
-                            key={`${surah.number}-${surah.verses || 'full'}`}
-                            className="flex items-center justify-between p-2 rounded-lg bg-background bg-opacity-50"
-                          >
-                            <div className="flex items-center gap-4">
-                              <button
-                                onClick={() => toggleSurah(surah.number, juzNumber)}
-                                className={`w-10 h-5 rounded-full transition-colors relative ${
-                                  isSurahSelected(surah.number, juzNumber) ? 'bg-[#2ECC71]' : 'bg-gray-600'
-                                }`}
-                              >
-                                <span
-                                  className={`absolute top-0.5 left-0.5 w-4 h-4 rounded-full transition-transform bg-white ${
-                                    isSurahSelected(surah.number, juzNumber) ? 'translate-x-5' : ''
-                                  }`}
-                                />
-                              </button>
-                              <div>
-                                <span className="text-primary">
-                                  {surah.number}. {surah.name}
-                                </span>
-                                {surah.verses && (
-                                  <span className="text-text-secondary text-sm ml-2">
-                                    (Verses: {surah.verses})
-                                  </span>
-                                )}
-                              </div>
-                            </div>
-                            <span className="text-lg font-arabic text-text-secondary">
-                              {surah.name}
-                            </span>
-                          </div>
-                        ))}
-                      </div>
-                    )}
-                  </div>
-                )
-              })}
-            </div>
-          </div>
-
-          <div className="bg-surface rounded-lg p-6">
-            <h2 className="text-xl font-semibold text-text mb-4">Revision Cycle</h2>
-            <p className="text-text-secondary mb-4">Set how often you want to revise each Juz:</p>
-            
-            <div className="flex gap-4">
-              {[3, 5, 7, 10, 14].map(days => (
+    <PageLayout>
+      <div className="container mx-auto px-4 py-8">
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.5 }}
+          className="space-y-8"
+        >
+          <div className="max-w-2xl mx-auto">
+            <div className="flex items-center justify-between mb-8">
+              <h1 className="text-3xl font-bold text-text">Profile Settings</h1>
+              <div className="flex gap-4">
                 <button
-                  key={days}
-                  onClick={() => {
-                    setRevisionCycle(days)
-                    setHasChanges(true)
-                  }}
-                  className={`
-                    px-4 py-2 rounded-md transition-colors
-                    ${revisionCycle === days
-                      ? 'bg-primary text-white'
-                      : 'bg-background text-text-secondary hover:bg-surface'}
-                  `}
+                  onClick={() => router.push('/dashboard')}
+                  className="flex items-center gap-2 px-4 py-2 rounded-md bg-background text-text-secondary hover:bg-surface transition-colors"
                 >
-                  {days} Days
+                  <X className="w-4 h-4" />
+                  Cancel
                 </button>
-              ))}
+                <button
+                  onClick={handleSave}
+                  disabled={!hasChanges || isLoading}
+                  className="flex items-center gap-2 px-4 py-2 rounded-md bg-primary text-white hover:bg-secondary transition-colors disabled:bg-text-secondary"
+                >
+                  <Save className="w-4 h-4" />
+                  {isLoading ? 'Saving...' : 'Save Changes'}
+                </button>
+              </div>
+            </div>
+
+            {error && (
+              <div className="bg-red-500 bg-opacity-10 border border-red-500 text-red-500 px-4 py-2 rounded-md mb-4">
+                {error}
+              </div>
+            )}
+
+            {success && (
+              <div className="bg-green-500 bg-opacity-10 border border-green-500 text-green-500 px-4 py-2 rounded-md mb-4">
+                {success}
+              </div>
+            )}
+
+            <div className="bg-surface rounded-lg p-6 mb-8">
+              <div className="flex items-center justify-between mb-6">
+                <div>
+                  <h2 className="text-xl font-semibold text-text">Memorized Juz & Surahs</h2>
+                  <p className="text-text-secondary mt-1">Select the Juz or individual Surahs you have memorized</p>
+                </div>
+                <div className="text-text-secondary">
+                  {memorizedJuz.length}/30 Juz
+                </div>
+              </div>
+
+              <div className="space-y-2 max-h-[400px] overflow-y-auto pr-2">
+                {Array.from({ length: 30 }, (_, i) => i + 1).map((juzNumber) => {
+                  const juz = juzData.find(j => j.number === juzNumber)
+                  const isExpanded = expandedJuz.includes(juzNumber)
+                  
+                  return (
+                    <div key={juzNumber} className="space-y-2">
+                      <div
+                        className="flex items-center justify-between p-3 rounded-lg bg-background hover:bg-surface transition-colors"
+                      >
+                        <div className="flex items-center gap-4">
+                          <button
+                            onClick={() => toggleExpand(juzNumber)}
+                            className="text-text-secondary hover:text-text transition-colors"
+                          >
+                            {isExpanded ? (
+                              <ChevronUp className="w-5 h-5" />
+                            ) : (
+                              <ChevronDown className="w-5 h-5" />
+                            )}
+                          </button>
+                          <span className="text-lg text-text">Juz {juzNumber}</span>
+                        </div>
+                        <button
+                          onClick={() => toggleJuz(juzNumber)}
+                          className={`w-12 h-6 rounded-full transition-colors relative ${
+                            memorizedJuz.includes(juzNumber) ? 'bg-[#2ECC71]' : 'bg-gray-600'
+                          }`}
+                        >
+                          <span
+                            className={`absolute top-1 left-1 w-4 h-4 rounded-full transition-transform bg-white ${
+                              memorizedJuz.includes(juzNumber) ? 'translate-x-6' : ''
+                            }`}
+                          />
+                        </button>
+                      </div>
+                      
+                      {/* Surahs List */}
+                      {isExpanded && juz && (
+                        <div className="ml-8 space-y-2">
+                          {juz.surahs.map((surah) => (
+                            <div
+                              key={`${surah.number}-${surah.verses || 'full'}`}
+                              className="flex items-center justify-between p-2 rounded-lg bg-background bg-opacity-50"
+                            >
+                              <div className="flex items-center gap-4">
+                                <button
+                                  onClick={() => toggleSurah(surah.number, juzNumber)}
+                                  className={`w-10 h-5 rounded-full transition-colors relative ${
+                                    isSurahSelected(surah.number, juzNumber) ? 'bg-[#2ECC71]' : 'bg-gray-600'
+                                  }`}
+                                >
+                                  <span
+                                    className={`absolute top-0.5 left-0.5 w-4 h-4 rounded-full transition-transform bg-white ${
+                                      isSurahSelected(surah.number, juzNumber) ? 'translate-x-5' : ''
+                                    }`}
+                                  />
+                                </button>
+                                <div>
+                                  <span className="text-primary">
+                                    {surah.number}. {surah.name}
+                                  </span>
+                                  {surah.verses && (
+                                    <span className="text-text-secondary text-sm ml-2">
+                                      (Verses: {surah.verses})
+                                    </span>
+                                  )}
+                                </div>
+                              </div>
+                              <span className="text-lg font-arabic text-text-secondary">
+                                {surah.name}
+                              </span>
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                  )
+                })}
+              </div>
+            </div>
+
+            <div className="bg-surface rounded-lg p-6">
+              <h2 className="text-xl font-semibold text-text mb-4">Revision Cycle</h2>
+              <p className="text-text-secondary mb-4">Set how often you want to revise each Juz:</p>
+              
+              <div className="flex gap-4">
+                {[3, 5, 7, 10, 14].map(days => (
+                  <button
+                    key={days}
+                    onClick={() => {
+                      setRevisionCycle(days)
+                      setHasChanges(true)
+                    }}
+                    className={`
+                      px-4 py-2 rounded-md transition-colors
+                      ${revisionCycle === days
+                        ? 'bg-primary text-white'
+                        : 'bg-background text-text-secondary hover:bg-surface'}
+                    `}
+                  >
+                    {days} Days
+                  </button>
+                ))}
+              </div>
             </div>
           </div>
-        </div>
-      </main>
-    </div>
+        </motion.div>
+      </div>
+    </PageLayout>
   )
 } 

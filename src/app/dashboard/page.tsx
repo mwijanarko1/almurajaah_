@@ -11,6 +11,8 @@ import Navbar from '@/app/components/Navbar'
 import { surahs } from '@/app/lib/data/surahs'
 import { LayoutGrid, List } from 'lucide-react'
 import { juzData } from '@/app/lib/data/quranData'
+import PageLayout from '@/app/components/ui/PageLayout'
+import { motion } from 'framer-motion'
 
 interface JuzProgress {
   lastRevised: string | null
@@ -42,7 +44,7 @@ const MOTIVATIONAL_QUOTES = [
   "The Prophet ﷺ said:\n\n\"Be diligent in maintaining your connection with this Qur'an, for by the One in Whose hand is the soul of Muhammad, it escapes more easily than a camel from its tether.\""
 ]
 
-export default function DashboardPage() {
+export default function Dashboard() {
   const { user } = useAuthContext()
   const router = useRouter()
   const [userProfile, setUserProfile] = useState<UserProfile | null>(null)
@@ -457,110 +459,116 @@ export default function DashboardPage() {
   const stats = getRevisionStats()
 
   return (
-    <div className="min-h-screen bg-background">
-      <Navbar />
-      <main className="container mx-auto px-4 py-8">
-        {/* Summary Header */}
-        <div className="bg-surface rounded-lg p-6 mb-8">
-          <h1 className="text-3xl font-bold text-text mb-4">
-            Welcome back, {user?.displayName}
-          </h1>
-          
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
-            <div className="bg-background/20 rounded-lg p-4">
-              <h3 className="text-green-400 text-lg font-semibold">Relax</h3>
-              <p className="text-2xl font-bold text-text">{stats.relaxed} {viewMode === 'juz' ? 'Juz' : 'Surahs'}</p>
+    <PageLayout>
+      <div className="container mx-auto px-4 py-8">
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.5 }}
+          className="space-y-8"
+        >
+          {/* Summary Header */}
+          <div className="bg-surface rounded-lg p-6 mb-8">
+            <h1 className="text-3xl font-bold text-text mb-4">
+              Welcome back, {user?.displayName}
+            </h1>
+            
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
+              <div className="bg-background/20 rounded-lg p-4">
+                <h3 className="text-green-400 text-lg font-semibold">Relax</h3>
+                <p className="text-2xl font-bold text-text">{stats.relaxed} {viewMode === 'juz' ? 'Juz' : 'Surahs'}</p>
+              </div>
+              <div className="bg-background/20 rounded-lg p-4">
+                <h3 className="text-red-400 text-lg font-semibold">Need Revision</h3>
+                <p className="text-2xl font-bold text-text">{stats.needRevision} {viewMode === 'juz' ? 'Juz' : 'Surahs'}</p>
+              </div>
+              <div className="bg-background/20 rounded-lg p-4">
+                <h3 className="text-blue-400 text-lg font-semibold">Total Progress</h3>
+                <p className="text-2xl font-bold text-text">
+                  {viewMode === 'juz' ? (
+                    // Count Juz that are either directly selected or have all Surahs selected
+                    `${items.length}/30 Juz`
+                  ) : (
+                    // Count selected Surahs
+                    `${userProfile.memorizedSurahs.length}/114 Surahs`
+                  )}
+                </p>
+              </div>
             </div>
-            <div className="bg-background/20 rounded-lg p-4">
-              <h3 className="text-red-400 text-lg font-semibold">Need Revision</h3>
-              <p className="text-2xl font-bold text-text">{stats.needRevision} {viewMode === 'juz' ? 'Juz' : 'Surahs'}</p>
-            </div>
-            <div className="bg-background/20 rounded-lg p-4">
-              <h3 className="text-blue-400 text-lg font-semibold">Total Progress</h3>
-              <p className="text-2xl font-bold text-text">
-                {viewMode === 'juz' ? (
-                  // Count Juz that are either directly selected or have all Surahs selected
-                  `${items.length}/30 Juz`
-                ) : (
-                  // Count selected Surahs
-                  `${userProfile.memorizedSurahs.length}/114 Surahs`
-                )}
-              </p>
-            </div>
+
+            <p className="text-text-secondary text-center italic">{quote}</p>
           </div>
 
-          <p className="text-text-secondary text-center italic">{quote}</p>
-        </div>
+          {/* View and Sort Controls */}
+          <div className="flex justify-between items-center mb-6">
+            <div className="flex gap-4">
+              <button
+                onClick={() => setViewMode('juz')}
+                className={`flex items-center gap-2 px-4 py-2 rounded-md transition-colors ${
+                  viewMode === 'juz'
+                    ? 'bg-primary text-white'
+                    : 'bg-background text-text-secondary hover:bg-surface'
+                }`}
+              >
+                <LayoutGrid size={18} />
+                Juz View
+              </button>
+              <button
+                onClick={() => setViewMode('surah')}
+                className={`flex items-center gap-2 px-4 py-2 rounded-md transition-colors ${
+                  viewMode === 'surah'
+                    ? 'bg-primary text-white'
+                    : 'bg-background text-text-secondary hover:bg-surface'
+                }`}
+              >
+                <LayoutGrid size={18} />
+                Surah View
+              </button>
+            </div>
 
-        {/* View and Sort Controls */}
-        <div className="flex justify-between items-center mb-6">
-          <div className="flex gap-4">
-            <button
-              onClick={() => setViewMode('juz')}
-              className={`flex items-center gap-2 px-4 py-2 rounded-md transition-colors ${
-                viewMode === 'juz'
-                  ? 'bg-primary text-white'
-                  : 'bg-background text-text-secondary hover:bg-surface'
-              }`}
+            <select
+              value={sortBy}
+              onChange={(e) => setSortBy(e.target.value as SortOption)}
+              className="bg-surface text-text px-4 py-2 rounded-md border border-primary focus:outline-none focus:ring-2 focus:ring-primary"
             >
-              <LayoutGrid size={18} />
-              Juz View
-            </button>
-            <button
-              onClick={() => setViewMode('surah')}
-              className={`flex items-center gap-2 px-4 py-2 rounded-md transition-colors ${
-                viewMode === 'surah'
-                  ? 'bg-primary text-white'
-                  : 'bg-background text-text-secondary hover:bg-surface'
-              }`}
-            >
-              <LayoutGrid size={18} />
-              Surah View
-            </button>
+              <option value="number">Sort by {viewMode === 'juz' ? 'Juz' : 'Surah'} Number</option>
+              <option value="lastRevised">Sort by Last Revised</option>
+              <option value="strength">Sort by Strength</option>
+            </select>
           </div>
 
-          <select
-            value={sortBy}
-            onChange={(e) => setSortBy(e.target.value as SortOption)}
-            className="bg-surface text-text px-4 py-2 rounded-md border border-primary focus:outline-none focus:ring-2 focus:ring-primary"
-          >
-            <option value="number">Sort by {viewMode === 'juz' ? 'Juz' : 'Surah'} Number</option>
-            <option value="lastRevised">Sort by Last Revised</option>
-            <option value="strength">Sort by Strength</option>
-          </select>
-        </div>
-
-        {/* Items Grid */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {viewMode === 'juz' ? (
-            (sortedItems as number[]).map((juzNum) => (
-              <JuzCard
-                key={juzNum}
-                juzNumber={juzNum}
-                lastRevised={userProfile?.juzProgress[juzNum.toString()]?.lastRevised || null}
-                strength={userProfile?.juzProgress[juzNum.toString()]?.strength || 'Medium'}
-                onRevisionUpdate={() => handleJuzRevisionUpdate(juzNum, new Date().toISOString())}
-                onStrengthChange={(newStrength) => handleJuzStrengthChange(juzNum, newStrength)}
-                revisionCycle={userProfile?.revisionCycle || 7}
-              />
-            ))
-          ) : (
-            (sortedItems as typeof surahs).map((surah) => (
-              <SurahCard
-                key={surah.number}
-                surahNumber={surah.number}
-                surahName={surah.name}
-                juzNumber={surah.juz[0]}
-                lastRevised={userProfile?.surahProgress[surah.number.toString()]?.lastRevised || null}
-                strength={userProfile?.surahProgress[surah.number.toString()]?.strength || 'Medium'}
-                onRevisionUpdate={() => handleSurahRevisionUpdate(surah.number, new Date().toISOString())}
-                onStrengthChange={(newStrength) => handleSurahStrengthChange(surah.number, newStrength)}
-                revisionCycle={userProfile?.revisionCycle || 7}
-              />
-            ))
-          )}
-        </div>
-      </main>
-    </div>
+          {/* Items Grid */}
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            {viewMode === 'juz' ? (
+              (sortedItems as number[]).map((juzNum) => (
+                <JuzCard
+                  key={juzNum}
+                  juzNumber={juzNum}
+                  lastRevised={userProfile?.juzProgress[juzNum.toString()]?.lastRevised || null}
+                  strength={userProfile?.juzProgress[juzNum.toString()]?.strength || 'Medium'}
+                  onRevisionUpdate={() => handleJuzRevisionUpdate(juzNum, new Date().toISOString())}
+                  onStrengthChange={(newStrength) => handleJuzStrengthChange(juzNum, newStrength)}
+                  revisionCycle={userProfile?.revisionCycle || 7}
+                />
+              ))
+            ) : (
+              (sortedItems as typeof surahs).map((surah) => (
+                <SurahCard
+                  key={surah.number}
+                  surahNumber={surah.number}
+                  surahName={surah.name}
+                  juzNumber={surah.juz[0]}
+                  lastRevised={userProfile?.surahProgress[surah.number.toString()]?.lastRevised || null}
+                  strength={userProfile?.surahProgress[surah.number.toString()]?.strength || 'Medium'}
+                  onRevisionUpdate={() => handleSurahRevisionUpdate(surah.number, new Date().toISOString())}
+                  onStrengthChange={(newStrength) => handleSurahStrengthChange(surah.number, newStrength)}
+                  revisionCycle={userProfile?.revisionCycle || 7}
+                />
+              ))
+            )}
+          </div>
+        </motion.div>
+      </div>
+    </PageLayout>
   )
 } 

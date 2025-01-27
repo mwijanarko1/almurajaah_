@@ -9,6 +9,8 @@ import { db } from '@/app/lib/firebase/firebase'
 import { updatePassword, updateEmail, updateProfile } from 'firebase/auth'
 import Navbar from '@/app/components/Navbar'
 import { Sun, Moon, Monitor, Volume2, VolumeX, ChevronDown, ChevronUp } from 'lucide-react'
+import PageLayout from '@/app/components/ui/PageLayout'
+import { motion } from 'framer-motion'
 
 interface UserSettings {
   language: 'en' | 'ar'
@@ -42,7 +44,7 @@ function CollapsibleCard({ title, isOpen, onToggle, children }: CollapsibleCardP
   )
 }
 
-export default function SettingsPage() {
+export default function Settings() {
   const { user } = useAuthContext()
   const { theme, setTheme } = useTheme()
   const router = useRouter()
@@ -169,10 +171,14 @@ export default function SettingsPage() {
   }
 
   return (
-    <div className="min-h-screen bg-background">
-      <Navbar />
-      <main className="container mx-auto px-4 py-8">
-        <div className="max-w-2xl mx-auto">
+    <PageLayout>
+      <div className="container mx-auto px-4 py-8">
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.5 }}
+          className="space-y-8"
+        >
           <h1 className="text-3xl font-bold text-text mb-8">Settings</h1>
 
           {error && (
@@ -395,8 +401,8 @@ export default function SettingsPage() {
               </button>
             </div>
           </CollapsibleCard>
-        </div>
-      </main>
-    </div>
+        </motion.div>
+      </div>
+    </PageLayout>
   )
 } 
