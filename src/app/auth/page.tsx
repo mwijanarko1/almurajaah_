@@ -42,6 +42,13 @@ export default function AuthPage() {
 
   const handleGoogleSignIn = async () => {
     setError('')
+    
+    // Check for terms and privacy policy acceptance
+    if (!acceptedTerms || !acceptedPrivacy) {
+      setError('Please accept both the Terms of Service and Privacy Policy')
+      return
+    }
+
     try {
       await signInWithGoogle()
       // Only navigate if sign in was successful
@@ -127,41 +134,40 @@ export default function AuthPage() {
                   />
                 </div>
 
-                {isSignUp && (
-                  <div className="space-y-2">
-                    <div className="flex items-center">
-                      <input
-                        type="checkbox"
-                        id="terms"
-                        checked={acceptedTerms}
-                        onChange={(e) => setAcceptedTerms(e.target.checked)}
-                        className="w-4 h-4 text-emerald-600 border-emerald-300 rounded focus:ring-emerald-500"
-                      />
-                      <label htmlFor="terms" className="ml-2 text-sm text-emerald-900">
-                        I agree to the{' '}
-                        <Link href="/terms" className="text-emerald-600 hover:underline">
-                          Terms of Service
-                        </Link>
-                      </label>
-                    </div>
-
-                    <div className="flex items-center">
-                      <input
-                        type="checkbox"
-                        id="privacy"
-                        checked={acceptedPrivacy}
-                        onChange={(e) => setAcceptedPrivacy(e.target.checked)}
-                        className="w-4 h-4 text-emerald-600 border-emerald-300 rounded focus:ring-emerald-500"
-                      />
-                      <label htmlFor="privacy" className="ml-2 text-sm text-emerald-900">
-                        I agree to the{' '}
-                        <Link href="/privacy" className="text-emerald-600 hover:underline">
-                          Privacy Policy
-                        </Link>
-                      </label>
-                    </div>
+                {/* Always show Terms and Privacy checkboxes */}
+                <div className="space-y-2">
+                  <div className="flex items-center">
+                    <input
+                      type="checkbox"
+                      id="terms"
+                      checked={acceptedTerms}
+                      onChange={(e) => setAcceptedTerms(e.target.checked)}
+                      className="w-4 h-4 text-emerald-600 border-emerald-300 rounded focus:ring-emerald-500"
+                    />
+                    <label htmlFor="terms" className="ml-2 text-sm text-emerald-900">
+                      I agree to the{' '}
+                      <Link href="/terms" className="text-emerald-600 hover:underline">
+                        Terms of Service
+                      </Link>
+                    </label>
                   </div>
-                )}
+
+                  <div className="flex items-center">
+                    <input
+                      type="checkbox"
+                      id="privacy"
+                      checked={acceptedPrivacy}
+                      onChange={(e) => setAcceptedPrivacy(e.target.checked)}
+                      className="w-4 h-4 text-emerald-600 border-emerald-300 rounded focus:ring-emerald-500"
+                    />
+                    <label htmlFor="privacy" className="ml-2 text-sm text-emerald-900">
+                      I agree to the{' '}
+                      <Link href="/privacy" className="text-emerald-600 hover:underline">
+                        Privacy Policy
+                      </Link>
+                    </label>
+                  </div>
+                </div>
 
                 <button
                   type="submit"
