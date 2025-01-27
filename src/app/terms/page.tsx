@@ -1,8 +1,25 @@
+'use client'
+
+import { useRouter } from 'next/navigation'
+
 export default function TermsPage() {
+  const router = useRouter()
+
   return (
     <main className="min-h-screen bg-[#1B4D3E] py-12 px-4">
       <div className="max-w-3xl mx-auto bg-white rounded-lg shadow-lg p-8">
-        <h1 className="text-3xl font-bold text-[#2C3E50] mb-6">Terms of Service</h1>
+        <div className="flex items-center mb-6">
+          <button
+            onClick={() => router.back()}
+            className="text-[#2C3E50] hover:text-[#1B4D3E] transition-colors"
+            aria-label="Go back"
+          >
+            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="w-6 h-6">
+              <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 19.5L8.25 12l7.5-7.5" />
+            </svg>
+          </button>
+          <h1 className="text-3xl font-bold text-[#2C3E50] ml-4">Terms of Service</h1>
+        </div>
         
         <div className="prose prose-lg">
           <section className="mb-8">
