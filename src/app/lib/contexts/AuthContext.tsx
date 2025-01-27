@@ -5,8 +5,6 @@ import {
   createUserWithEmailAndPassword,
   signInWithEmailAndPassword,
   signInWithPopup,
-  signInWithRedirect,
-  getRedirectResult,
   GoogleAuthProvider,
   signOut as firebaseSignOut,
   onAuthStateChanged,
@@ -46,37 +44,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       setLoading(false)
     })
 
-    // Check for redirect result
-    const checkRedirectResult = async () => {
-      try {
-        const result = await getRedirectResult(auth)
-        if (result?.user) {
-          // Check if user profile exists
-          const userProfileDoc = await getDoc(doc(db, 'userProfiles', result.user.uid))
-          
-          if (!userProfileDoc.exists()) {
-            // Create new user profile for Google sign-in
-            await setDoc(doc(db, 'userProfiles', result.user.uid), {
-              name: result.user.displayName || '',
-              email: result.user.email,
-              setupCompleted: false,
-              memorizedJuz: [],
-              memorizedSurahs: [],
-              juzProgress: {},
-              surahProgress: {},
-              revisionCycle: 7
-            })
-            setIsSetupComplete(false)
-          } else {
-            setIsSetupComplete(userProfileDoc.data()?.setupCompleted || false)
-          }
-        }
-      } catch (error) {
-        console.error('Error checking redirect result:', error)
-      }
-    }
-
-    checkRedirectResult()
     return unsubscribe
   }, [])
 
@@ -116,13 +83,44 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const signInWithGoogle = async () => {
     setIsAuthenticating(true)
     try {
-      // Use signInWithRedirect for better mobile experience
       const provider = new GoogleAuthProvider()
-      await signInWithRedirect(auth, provider)
-      // The redirect will happen here, and the result will be handled in the useEffect
+      console.log('Starting Google sign-in...')
+      const result = await signInWithPopup(auth, provider)
+      console.log('Google sign-in successful')
+      
+      // Check if user profile exists
+      console.log('Checking user profile...')
+      const userProfileDoc = await getDoc(doc(db, 'userProfiles', result.user.uid))
+      
+      if (!userProfileDoc.exists()) {
+        console.log('Creating new user profile...')
+        // Create new user profile for Google sign-in
+        await setDoc(doc(db, 'userProfiles', result.user.uid), {
+          name: result.user.displayName || '',
+          email: result.user.email,
+          setupCompleted: false,
+          memorizedJuz: [],
+          memorizedSurahs: [],
+          juzProgress: {},
+          surahProgress: {},
+          revisionCycle: 7
+        })
+        setIsSetupComplete(false)
+        console.log('User profile created successfully')
+      } else {
+        console.log('Existing user profile found')
+        setIsSetupComplete(userProfileDoc.data()?.setupCompleted || false)
+      }
     } catch (error: any) {
-      console.error('Google sign in error:', error)
-      throw error
+      console.error('Detailed Google sign-in error:', {
+        code: error.code,
+        message: error.message,
+        details: error
+      })
+      // Don't throw error if user just closed the popup
+      if (error.code !== 'auth/popup-closed-by-user') {
+        throw error
+      }
     } finally {
       setIsAuthenticating(false)
     }
