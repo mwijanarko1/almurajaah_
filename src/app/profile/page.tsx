@@ -6,10 +6,11 @@ import { useAuthContext } from '@/app/lib/contexts/AuthContext'
 import { doc, getDoc, updateDoc } from 'firebase/firestore'
 import { db } from '@/app/lib/firebase/firebase'
 import Navbar from '@/app/components/Navbar'
-import { ChevronDown, ChevronUp, Save, X } from 'lucide-react'
+import { ChevronDown, ChevronUp, Save, X, AlertTriangle } from 'lucide-react'
 import { juzData } from '@/app/lib/data/quranData'
 import PageLayout from '@/app/components/ui/PageLayout'
 import { motion } from 'framer-motion'
+import { deleteUserAccount } from '@/lib/firebase/firebaseUtils'
 
 interface UserProfile {
   memorizedJuz: number[]
@@ -398,6 +399,61 @@ export default function Profile() {
               </div>
             </div>
           </div>
+
+          {/* Delete Account Section */}
+          <div className="max-w-2xl mx-auto mt-16 border-t pt-8">
+            <h2 className="text-2xl font-bold text-red-600 mb-4">Danger Zone</h2>
+            <div className="bg-red-50 border border-red-200 rounded-lg p-6">
+              <div className="flex items-start space-x-4">
+                <div className="flex-shrink-0">
+                  <AlertTriangle className="h-6 w-6 text-red-600" />
+                </div>
+                <div className="flex-1">
+                  <h3 className="text-lg font-medium text-red-900">Delete Account</h3>
+                  <p className="mt-2 text-sm text-red-700">
+                    Once you delete your account, there is no going back. This action is permanent and will delete all your data including memorization progress, preferences, and settings.
+                  </p>
+                  <div className="mt-4">
+                    <button
+                      onClick={() => {
+                        if (window.confirm('Are you absolutely sure you want to delete your account? This action cannot be undone.')) {
+                          if (user) {
+                            setIsLoading(true);
+                            deleteUserAccount(user.uid)
+                              .then(() => {
+                                setIsLoading(false);
+                                // The deleteUserAccount function already deletes the auth account,
+                                // which triggers the AuthContext to update and redirect to landing
+                                router.replace('/');
+                              })
+                              .catch((error: Error) => {
+                                setIsLoading(false);
+                                setError('Failed to delete account: ' + error.message);
+                              });
+                          }
+                        }
+                      }}
+                      disabled={isLoading}
+                      className="inline-flex items-center px-4 py-2 border border-red-600 text-sm font-medium rounded-md text-red-600 bg-white hover:bg-red-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500 disabled:opacity-50 disabled:cursor-not-allowed"
+                    >
+                      {isLoading ? 'Deleting...' : 'Delete Account'}
+                    </button>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+          
+          {error && (
+            <div className="max-w-2xl mx-auto mt-4 p-4 bg-red-50 border border-red-200 rounded-lg text-red-700">
+              {error}
+            </div>
+          )}
+          {success && (
+            <div className="max-w-2xl mx-auto mt-4 p-4 bg-green-50 border border-green-200 rounded-lg text-green-700">
+              {success}
+            </div>
+          )}
         </motion.div>
       </div>
     </PageLayout>
