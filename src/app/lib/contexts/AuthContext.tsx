@@ -184,7 +184,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     setIsAuthenticating(true)
     try {
       await firebaseSignOut(auth)
-      Cookies.remove('session')
       router.push('/')
     } finally {
       setIsAuthenticating(false)
