@@ -128,6 +128,14 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       const userCredential = await signInWithEmailAndPassword(auth, email, password)
       await setSessionToken(userCredential.user)
       router.push('/dashboard')
+    } catch (error: any) {
+      if (error.code === 'auth/user-not-found') {
+        throw new Error('No account exists with this email. Please sign up first.')
+      }
+      if (error.code === 'auth/wrong-password') {
+        throw new Error('Incorrect password. Please try again.')
+      }
+      throw error
     } finally {
       setIsAuthenticating(false)
     }
