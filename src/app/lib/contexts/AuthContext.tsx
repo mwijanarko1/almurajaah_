@@ -194,23 +194,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     if (!user) return
     setIsAuthenticating(true)
     try {
-      // First delete user data from Firestore
       await deleteDoc(doc(db, 'userProfiles', user.uid))
-      
-      // Remove session cookie before deleting the account
-      Cookies.remove('session')
-      
-      // Delete the user account
       await user.delete()
-      
-      // Set user to null
-      setUser(null)
-      
-      // Finally redirect to home page
       router.push('/')
-    } catch (error) {
-      console.error('Error deleting account:', error)
-      throw error
     } finally {
       setIsAuthenticating(false)
     }
