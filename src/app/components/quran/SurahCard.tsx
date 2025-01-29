@@ -79,7 +79,7 @@ export default function SurahCard({
   }
 
   const getRevisionTimeDisplay = () => {
-    if (!daysSinceRevision) return 'Revise in 7 days'
+    if (!daysSinceRevision) return `Revise in ${revisionCycle} days`
     if (daysSinceRevision >= revisionCycle) return 'Revise now'
     
     const daysUntilRevision = revisionCycle - daysSinceRevision

@@ -168,7 +168,7 @@ export default function SpacedRepetition() {
             lastRevisedDate = new Date(now.getTime() - 6 * 24 * 60 * 60 * 1000)
           } else if (quality === 3) { // Medium
             lastRevisedDate = new Date(now.getTime() - 4 * 24 * 60 * 60 * 1000)
-          } else { // Easy
+          } else { // Easy - Reset to show up after revisionCycle days
             lastRevisedDate = now
           }
 
