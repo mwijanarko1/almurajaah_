@@ -47,11 +47,12 @@ interface Juz {
 }
 
 export default function Profile() {
-  const { user } = useAuthContext()
+  const { user, deleteAccount } = useAuthContext()
   const router = useRouter()
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState('')
   const [success, setSuccess] = useState('')
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false)
   
   // Profile states
   const [memorizedJuz, setMemorizedJuz] = useState<number[]>([])
@@ -237,6 +238,20 @@ export default function Profile() {
     )
   }
 
+  const handleDeleteAccount = async () => {
+    try {
+      setIsLoading(true)
+      setError('')
+      // Call deleteAccount and let AuthContext handle the redirect
+      await deleteAccount()
+    } catch (error) {
+      console.error('Error deleting account:', error)
+      setError('Failed to delete account. Please try again.')
+      setShowDeleteConfirm(false)
+      setIsLoading(false)
+    }
+  }
+
   return (
     <PageLayout>
       <div className="container mx-auto px-4 py-8">
@@ -267,6 +282,41 @@ export default function Profile() {
                 </button>
               </div>
             </div>
+
+            {showDeleteConfirm && (
+              <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+                <div className="bg-white rounded-lg p-6 max-w-md w-full mx-4">
+                  <h2 className="text-xl font-bold mb-4">Delete Account</h2>
+                  <p className="text-gray-600 mb-6">
+                    Are you sure you want to delete your account? This action cannot be undone.
+                    All your data will be permanently deleted.
+                  </p>
+                  <div className="flex justify-end space-x-4">
+                    <button
+                      onClick={() => setShowDeleteConfirm(false)}
+                      disabled={isLoading}
+                      className="px-4 py-2 text-gray-600 hover:text-gray-700 transition-colors disabled:opacity-50"
+                    >
+                      Cancel
+                    </button>
+                    <button
+                      onClick={handleDeleteAccount}
+                      disabled={isLoading}
+                      className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors disabled:opacity-50 flex items-center gap-2"
+                    >
+                      {isLoading ? (
+                        <>
+                          <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                          Deleting...
+                        </>
+                      ) : (
+                        'Delete Account'
+                      )}
+                    </button>
+                  </div>
+                </div>
+              </div>
+            )}
 
             {error && (
               <div className="bg-red-500 bg-opacity-10 border border-red-500 text-red-500 px-4 py-2 rounded-md mb-4">
@@ -395,6 +445,24 @@ export default function Profile() {
                     {days} Days
                   </button>
                 ))}
+              </div>
+            </div>
+
+            <div className="mt-12 pt-6 border-t border-background/20">
+              <div className="flex flex-col items-center justify-center text-center">
+                <h3 className="text-xl font-semibold text-red-600 mb-2">Danger Zone</h3>
+                <p className="text-text-secondary mb-4 max-w-md">
+                  Once you delete your account, there is no going back. Please be certain.
+                </p>
+                <button
+                  onClick={() => setShowDeleteConfirm(true)}
+                  className="px-6 py-3 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors flex items-center gap-2"
+                >
+                  <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+                    <path fillRule="evenodd" d="M9 2a1 1 0 00-.894.553L7.382 4H4a1 1 0 000 2v10a2 2 0 002 2h8a2 2 0 002-2V6a1 1 0 100-2h-3.382l-.724-1.447A1 1 0 0011 2H9zM7 8a1 1 0 012 0v6a1 1 0 11-2 0V8zm5-1a1 1 0 00-1 1v6a1 1 0 102 0V8a1 1 0 00-1-1z" clipRule="evenodd" />
+                  </svg>
+                  Delete Account
+                </button>
               </div>
             </div>
           </div>

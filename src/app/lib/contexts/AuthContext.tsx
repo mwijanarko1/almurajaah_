@@ -13,17 +13,17 @@ import {
   getIdToken
 } from 'firebase/auth'
 import { auth, db } from '@/app/lib/firebase/firebase'
-import { doc, getDoc, setDoc } from 'firebase/firestore'
+import { doc, getDoc, setDoc, deleteDoc } from 'firebase/firestore'
 import { useRouter } from 'next/navigation'
 import Cookies from 'js-cookie'
 
 interface AuthContextType {
   user: User | null
-  isSetupComplete: boolean
   signUp: (email: string, password: string, name: string) => Promise<void>
   signIn: (email: string, password: string) => Promise<void>
   signInWithGoogle: () => Promise<void>
   signOut: () => Promise<void>
+  deleteAccount: () => Promise<void>
 }
 
 const AuthContext = createContext<AuthContextType>({} as AuthContextType)
@@ -31,7 +31,6 @@ const AuthContext = createContext<AuthContextType>({} as AuthContextType)
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<User | null>(null)
   const [loading, setLoading] = useState(true)
-  const [isSetupComplete, setIsSetupComplete] = useState(false)
   const [isAuthenticating, setIsAuthenticating] = useState(false)
   const router = useRouter()
 
@@ -39,7 +38,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     try {
       const userProfileDoc = await getDoc(doc(db, 'userProfiles', userId))
       if (userProfileDoc.exists()) {
-        setIsSetupComplete(userProfileDoc.data()?.setupCompleted || false)
         return userProfileDoc
       } else if (retryCount > 0) {
         await new Promise(resolve => setTimeout(resolve, 1000))
@@ -104,7 +102,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           await setDoc(doc(db, 'userProfiles', userCredential.user.uid), {
             name: name || userCredential.user.displayName || '',
             email: userCredential.user.email,
-            setupCompleted: false,
             memorizedJuz: [],
             memorizedSurahs: [],
             juzProgress: {},
@@ -119,6 +116,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           await new Promise(resolve => setTimeout(resolve, 1000))
         }
       }
+      router.push('/dashboard')
     } finally {
       setIsAuthenticating(false)
     }
@@ -129,6 +127,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     try {
       const userCredential = await signInWithEmailAndPassword(auth, email, password)
       await setSessionToken(userCredential.user)
+      router.push('/dashboard')
     } finally {
       setIsAuthenticating(false)
     }
@@ -151,14 +150,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             await setDoc(doc(db, 'userProfiles', result.user.uid), {
               name: result.user.displayName || '',
               email: result.user.email,
-              setupCompleted: false,
               memorizedJuz: [],
               memorizedSurahs: [],
               juzProgress: {},
               surahProgress: {},
               revisionCycle: 7
             })
-            setIsSetupComplete(false)
             break
           } catch (error) {
             console.error(`Error creating user profile (attempt ${4 - retryCount}/3):`, error)
@@ -168,6 +165,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           }
         }
       }
+      router.push('/dashboard')
     } catch (error: any) {
       console.error('Detailed Google sign-in error:', {
         code: error.code,
@@ -193,6 +191,32 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
   }
 
+  const deleteAccount = async () => {
+    if (!user) return
+    setIsAuthenticating(true)
+    try {
+      // First delete user data from Firestore
+      await deleteDoc(doc(db, 'userProfiles', user.uid))
+      
+      // Remove session cookie before deleting the account
+      Cookies.remove('session')
+      
+      // Delete the user account
+      await user.delete()
+      
+      // Set user to null
+      setUser(null)
+      
+      // Finally redirect to home page
+      router.push('/')
+    } catch (error) {
+      console.error('Error deleting account:', error)
+      throw error
+    } finally {
+      setIsAuthenticating(false)
+    }
+  }
+
   if (loading || isAuthenticating) {
     return (
       <div className="flex items-center justify-center min-h-screen">
@@ -205,7 +229,14 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }
 
   return (
-    <AuthContext.Provider value={{ user, isSetupComplete, signUp, signIn, signInWithGoogle, signOut }}>
+    <AuthContext.Provider value={{ 
+      user, 
+      signUp, 
+      signIn, 
+      signInWithGoogle, 
+      signOut,
+      deleteAccount 
+    }}>
       {children}
     </AuthContext.Provider>
   )

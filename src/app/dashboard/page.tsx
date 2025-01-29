@@ -509,39 +509,51 @@ export default function Dashboard() {
 
           {/* View and Sort Controls */}
           <div className="mb-6 flex justify-between items-center">
-            <div className="flex gap-2">
+            <div className="flex items-center space-x-4">
               <button
                 onClick={() => setViewMode('juz')}
-                className={`px-4 py-2 rounded-lg transition-colors ${
+                className={`flex items-center space-x-2 px-4 py-2 rounded-lg ${
                   viewMode === 'juz'
-                    ? 'bg-primary text-white'
-                    : 'bg-surface text-text hover:bg-background/5'
+                    ? 'bg-emerald-600 text-white'
+                    : 'bg-emerald-100 text-emerald-800'
                 }`}
               >
-                Juz View
+                <LayoutGrid className="w-5 h-5" />
+                <span>Juz View</span>
               </button>
               <button
                 onClick={() => setViewMode('surah')}
-                className={`px-4 py-2 rounded-lg transition-colors ${
+                className={`flex items-center space-x-2 px-4 py-2 rounded-lg ${
                   viewMode === 'surah'
-                    ? 'bg-primary text-white'
-                    : 'bg-surface text-text hover:bg-background/5'
+                    ? 'bg-emerald-600 text-white'
+                    : 'bg-emerald-100 text-emerald-800'
                 }`}
               >
-                Surah View
+                <List className="w-5 h-5" />
+                <span>Surah View</span>
               </button>
             </div>
-
-            <select
-              value={sortBy}
-              onChange={(e) => setSortBy(e.target.value as SortOption)}
-              className="bg-surface text-text px-4 py-2 rounded-lg border border-background/10"
+            
+            <button
+              onClick={() => router.push('/profile')}
+              className="flex items-center space-x-2 px-4 py-2 rounded-lg bg-emerald-600 text-white hover:bg-emerald-700 transition-colors"
             >
-              <option value="number">Sort by Number</option>
-              <option value="lastRevised">Sort by Last Revised</option>
-              <option value="strength">Sort by Strength</option>
-            </select>
+              <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+                <path fillRule="evenodd" d="M10 3a1 1 0 011 1v5h5a1 1 0 110 2h-5v5a1 1 0 11-2 0v-5H4a1 1 0 110-2h5V4a1 1 0 011-1z" clipRule="evenodd" />
+              </svg>
+              <span>Add Juz/Surah</span>
+            </button>
           </div>
+
+          <select
+            value={sortBy}
+            onChange={(e) => setSortBy(e.target.value as SortOption)}
+            className="bg-surface text-text px-4 py-2 rounded-lg border border-background/10"
+          >
+            <option value="number">Sort by Number</option>
+            <option value="lastRevised">Sort by Last Revised</option>
+            <option value="strength">Sort by Strength</option>
+          </select>
 
           {/* Items Grid */}
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
