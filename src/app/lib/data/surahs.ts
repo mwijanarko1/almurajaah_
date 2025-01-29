@@ -1,4 +1,4 @@
-interface Surah {
+export interface Surah {
   number: number
   name: string
   juz: number[]

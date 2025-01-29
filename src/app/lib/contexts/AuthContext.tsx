@@ -9,11 +9,13 @@ import {
   signOut as firebaseSignOut,
   onAuthStateChanged,
   updateProfile,
-  User
+  User,
+  getIdToken
 } from 'firebase/auth'
 import { auth, db } from '@/app/lib/firebase/firebase'
 import { doc, getDoc, setDoc } from 'firebase/firestore'
 import { useRouter } from 'next/navigation'
+import Cookies from 'js-cookie'
 
 interface AuthContextType {
   user: User | null
@@ -33,13 +35,52 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [isAuthenticating, setIsAuthenticating] = useState(false)
   const router = useRouter()
 
+  const fetchUserProfile = async (userId: string, retryCount = 3) => {
+    try {
+      const userProfileDoc = await getDoc(doc(db, 'userProfiles', userId))
+      if (userProfileDoc.exists()) {
+        setIsSetupComplete(userProfileDoc.data()?.setupCompleted || false)
+        return userProfileDoc
+      } else if (retryCount > 0) {
+        await new Promise(resolve => setTimeout(resolve, 1000))
+        return fetchUserProfile(userId, retryCount - 1)
+      }
+      return null
+    } catch (error) {
+      console.error('Error fetching user profile:', error)
+      if (retryCount > 0) {
+        await new Promise(resolve => setTimeout(resolve, 1000))
+        return fetchUserProfile(userId, retryCount - 1)
+      }
+      return null
+    }
+  }
+
+  const setSessionToken = async (user: User) => {
+    try {
+      const token = await getIdToken(user, true)
+      Cookies.set('session', token, { 
+        expires: 7, // 7 days
+        secure: process.env.NODE_ENV === 'production',
+        sameSite: 'strict'
+      })
+    } catch (error) {
+      console.error('Error setting session token:', error)
+    }
+  }
+
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, async (user) => {
       setUser(user)
       if (user) {
-        // Check if user has completed setup
-        const userProfileDoc = await getDoc(doc(db, 'userProfiles', user.uid))
-        setIsSetupComplete(userProfileDoc.exists() && userProfileDoc.data()?.setupCompleted)
+        try {
+          await setSessionToken(user)
+          await fetchUserProfile(user.uid)
+        } catch (error) {
+          console.error('Error in auth state change:', error)
+        }
+      } else {
+        Cookies.remove('session')
       }
       setLoading(false)
     })
@@ -55,17 +96,29 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         await updateProfile(userCredential.user, { displayName: name })
       }
       
-      // Initialize user profile
-      await setDoc(doc(db, 'userProfiles', userCredential.user.uid), {
-        name: name || userCredential.user.displayName || '',
-        email: userCredential.user.email,
-        setupCompleted: false,
-        memorizedJuz: [],
-        memorizedSurahs: [],
-        juzProgress: {},
-        surahProgress: {},
-        revisionCycle: 7
-      })
+      await setSessionToken(userCredential.user)
+      
+      let retryCount = 3
+      while (retryCount > 0) {
+        try {
+          await setDoc(doc(db, 'userProfiles', userCredential.user.uid), {
+            name: name || userCredential.user.displayName || '',
+            email: userCredential.user.email,
+            setupCompleted: false,
+            memorizedJuz: [],
+            memorizedSurahs: [],
+            juzProgress: {},
+            surahProgress: {},
+            revisionCycle: 7
+          })
+          break
+        } catch (error) {
+          console.error(`Error creating user profile (attempt ${4 - retryCount}/3):`, error)
+          retryCount--
+          if (retryCount === 0) throw error
+          await new Promise(resolve => setTimeout(resolve, 1000))
+        }
+      }
     } finally {
       setIsAuthenticating(false)
     }
@@ -74,7 +127,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const signIn = async (email: string, password: string) => {
     setIsAuthenticating(true)
     try {
-      await signInWithEmailAndPassword(auth, email, password)
+      const userCredential = await signInWithEmailAndPassword(auth, email, password)
+      await setSessionToken(userCredential.user)
     } finally {
       setIsAuthenticating(false)
     }
@@ -84,32 +138,35 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     setIsAuthenticating(true)
     try {
       const provider = new GoogleAuthProvider()
-      console.log('Starting Google sign-in...')
       const result = await signInWithPopup(auth, provider)
-      console.log('Google sign-in successful')
       
-      // Check if user profile exists
-      console.log('Checking user profile...')
-      const userProfileDoc = await getDoc(doc(db, 'userProfiles', result.user.uid))
+      await setSessionToken(result.user)
       
-      if (!userProfileDoc.exists()) {
-        console.log('Creating new user profile...')
-        // Create new user profile for Google sign-in
-        await setDoc(doc(db, 'userProfiles', result.user.uid), {
-          name: result.user.displayName || '',
-          email: result.user.email,
-          setupCompleted: false,
-          memorizedJuz: [],
-          memorizedSurahs: [],
-          juzProgress: {},
-          surahProgress: {},
-          revisionCycle: 7
-        })
-        setIsSetupComplete(false)
-        console.log('User profile created successfully')
-      } else {
-        console.log('Existing user profile found')
-        setIsSetupComplete(userProfileDoc.data()?.setupCompleted || false)
+      const userProfileDoc = await fetchUserProfile(result.user.uid)
+      
+      if (!userProfileDoc?.exists()) {
+        let retryCount = 3
+        while (retryCount > 0) {
+          try {
+            await setDoc(doc(db, 'userProfiles', result.user.uid), {
+              name: result.user.displayName || '',
+              email: result.user.email,
+              setupCompleted: false,
+              memorizedJuz: [],
+              memorizedSurahs: [],
+              juzProgress: {},
+              surahProgress: {},
+              revisionCycle: 7
+            })
+            setIsSetupComplete(false)
+            break
+          } catch (error) {
+            console.error(`Error creating user profile (attempt ${4 - retryCount}/3):`, error)
+            retryCount--
+            if (retryCount === 0) throw error
+            await new Promise(resolve => setTimeout(resolve, 1000))
+          }
+        }
       }
     } catch (error: any) {
       console.error('Detailed Google sign-in error:', {
@@ -117,7 +174,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         message: error.message,
         details: error
       })
-      // Don't throw error if user just closed the popup
       if (error.code !== 'auth/popup-closed-by-user') {
         throw error
       }
@@ -130,6 +186,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     setIsAuthenticating(true)
     try {
       await firebaseSignOut(auth)
+      Cookies.remove('session')
       router.push('/')
     } finally {
       setIsAuthenticating(false)

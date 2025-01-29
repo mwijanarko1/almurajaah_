@@ -83,6 +83,15 @@ export default function SurahCard({
     return needsRevision() ? 'Revise Now' : 'Relax'
   }
 
+  const getRevisionTimeDisplay = () => {
+    if (!lastRevised) return 'Not started'
+    if (!daysSinceRevision) return 'Revise in 7 days'
+
+    const daysUntilRevision = revisionCycle - daysSinceRevision
+    if (daysUntilRevision <= 0) return 'Revise now'
+    return `Revise in ${daysUntilRevision} days`
+  }
+
   const handleRevisionUpdate = async () => {
     if (!user) return
     setIsUpdating(true)
@@ -135,9 +144,6 @@ export default function SurahCard({
               <span className="text-white text-opacity-60">Juz {juzNumber}</span>
             </div>
           </div>
-          <div className="text-sm font-medium text-white">
-            {getProgressPercentage()}%
-          </div>
         </div>
 
         <div className="flex items-center gap-2">
@@ -164,11 +170,7 @@ export default function SurahCard({
 
         <div className="flex items-center justify-between text-sm text-white text-opacity-60">
           <span>
-            {lastRevised 
-              ? daysSinceRevision === 0 
-                ? 'Revised today'
-                : `${daysSinceRevision} days ago`
-              : 'Not started'}
+            {getRevisionTimeDisplay()}
           </span>
           <span className={needsRevision() ? 'text-red-300' : 'text-green-300'}>
             {getRevisionStatus()}

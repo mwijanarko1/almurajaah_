@@ -1,7 +1,7 @@
 'use client'
 
 import { useEffect, useState, useMemo } from 'react'
-import { useRouter } from 'next/navigation'
+import { useRouter, useSearchParams } from 'next/navigation'
 import { useAuthContext } from '@/app/lib/contexts/AuthContext'
 import { doc, getDoc, updateDoc } from 'firebase/firestore'
 import { db } from '@/app/lib/firebase/firebase'
@@ -13,6 +13,7 @@ import { LayoutGrid, List } from 'lucide-react'
 import { juzData } from '@/app/lib/data/quranData'
 import PageLayout from '@/app/components/ui/PageLayout'
 import { motion } from 'framer-motion'
+import SpacedRepetition from '@/app/components/quran/SpacedRepetition'
 
 interface JuzProgress {
   lastRevised: string | null
@@ -47,6 +48,7 @@ const MOTIVATIONAL_QUOTES = [
 export default function Dashboard() {
   const { user } = useAuthContext()
   const router = useRouter()
+  const searchParams = useSearchParams()
   const [userProfile, setUserProfile] = useState<UserProfile | null>(null)
   const [sortBy, setSortBy] = useState<SortOption>('number')
   const [viewMode, setViewMode] = useState<ViewMode>('juz')
@@ -494,10 +496,8 @@ export default function Dashboard() {
                 <h3 className="text-blue-400 text-lg font-semibold">Total Progress</h3>
                 <p className="text-2xl font-bold text-text">
                   {viewMode === 'juz' ? (
-                    // Count Juz that are either directly selected or have all Surahs selected
                     `${items.length}/30 Juz`
                   ) : (
-                    // Count selected Surahs
                     `${userProfile.memorizedSurahs.length}/114 Surahs`
                   )}
                 </p>
@@ -508,28 +508,26 @@ export default function Dashboard() {
           </div>
 
           {/* View and Sort Controls */}
-          <div className="flex justify-between items-center mb-6">
-            <div className="flex gap-4">
+          <div className="mb-6 flex justify-between items-center">
+            <div className="flex gap-2">
               <button
                 onClick={() => setViewMode('juz')}
-                className={`flex items-center gap-2 px-4 py-2 rounded-md transition-colors ${
+                className={`px-4 py-2 rounded-lg transition-colors ${
                   viewMode === 'juz'
                     ? 'bg-primary text-white'
-                    : 'bg-background text-text-secondary hover:bg-surface'
+                    : 'bg-surface text-text hover:bg-background/5'
                 }`}
               >
-                <LayoutGrid size={18} />
                 Juz View
               </button>
               <button
                 onClick={() => setViewMode('surah')}
-                className={`flex items-center gap-2 px-4 py-2 rounded-md transition-colors ${
+                className={`px-4 py-2 rounded-lg transition-colors ${
                   viewMode === 'surah'
                     ? 'bg-primary text-white'
-                    : 'bg-background text-text-secondary hover:bg-surface'
+                    : 'bg-surface text-text hover:bg-background/5'
                 }`}
               >
-                <LayoutGrid size={18} />
                 Surah View
               </button>
             </div>
@@ -537,9 +535,9 @@ export default function Dashboard() {
             <select
               value={sortBy}
               onChange={(e) => setSortBy(e.target.value as SortOption)}
-              className="bg-surface text-text px-4 py-2 rounded-md border border-primary focus:outline-none focus:ring-2 focus:ring-primary"
+              className="bg-surface text-text px-4 py-2 rounded-lg border border-background/10"
             >
-              <option value="number">Sort by {viewMode === 'juz' ? 'Juz' : 'Surah'} Number</option>
+              <option value="number">Sort by Number</option>
               <option value="lastRevised">Sort by Last Revised</option>
               <option value="strength">Sort by Strength</option>
             </select>
@@ -547,19 +545,7 @@ export default function Dashboard() {
 
           {/* Items Grid */}
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {viewMode === 'juz' ? (
-              (sortedItems as number[]).map((juzNum) => (
-                <JuzCard
-                  key={juzNum}
-                  juzNumber={juzNum}
-                  lastRevised={userProfile?.juzProgress[juzNum.toString()]?.lastRevised || null}
-                  strength={userProfile?.juzProgress[juzNum.toString()]?.strength || 'Medium'}
-                  onRevisionUpdate={() => handleJuzRevisionUpdate(juzNum, new Date().toISOString())}
-                  onStrengthChange={(newStrength) => handleJuzStrengthChange(juzNum, newStrength)}
-                  revisionCycle={userProfile?.revisionCycle || 7}
-                />
-              ))
-            ) : (
+            {viewMode === 'surah' ? (
               (sortedItems as typeof surahs).map((surah) => (
                 <SurahCard
                   key={surah.number}
@@ -570,6 +556,18 @@ export default function Dashboard() {
                   strength={userProfile?.surahProgress[surah.number.toString()]?.strength || 'Medium'}
                   onRevisionUpdate={() => handleSurahRevisionUpdate(surah.number, new Date().toISOString())}
                   onStrengthChange={(newStrength) => handleSurahStrengthChange(surah.number, newStrength)}
+                  revisionCycle={userProfile?.revisionCycle || 7}
+                />
+              ))
+            ) : (
+              (sortedItems as number[]).map((juzNum) => (
+                <JuzCard
+                  key={juzNum}
+                  juzNumber={juzNum}
+                  lastRevised={userProfile?.juzProgress[juzNum.toString()]?.lastRevised || null}
+                  strength={userProfile?.juzProgress[juzNum.toString()]?.strength || 'Medium'}
+                  onRevisionUpdate={() => handleJuzRevisionUpdate(juzNum, new Date().toISOString())}
+                  onStrengthChange={(newStrength) => handleJuzStrengthChange(juzNum, newStrength)}
                   revisionCycle={userProfile?.revisionCycle || 7}
                 />
               ))

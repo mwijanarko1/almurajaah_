@@ -51,7 +51,6 @@ export default function JuzCard({
       const lastDate = new Date(lastRevised)
       const today = new Date()
       
-      // Reset time parts to compare just the dates
       lastDate.setHours(0, 0, 0, 0)
       today.setHours(0, 0, 0, 0)
       
@@ -68,7 +67,7 @@ export default function JuzCard({
   }, [lastRevised])
 
   const needsRevision = () => {
-    if (!lastRevised) return true // If never revised, needs revision
+    if (!lastRevised) return true
     return daysSinceRevision !== null && daysSinceRevision >= revisionCycle
   }
 
@@ -105,29 +104,22 @@ export default function JuzCard({
   }
 
   const getCardColor = () => {
-    if (!lastRevised) return 'bg-red-900' // Not started
+    if (!lastRevised) return 'bg-red-900'
     if (daysSinceRevision === null) return 'bg-red-900'
     
     const progress = getProgressPercentage()
     
-    if (progress <= 0) return 'bg-red-900' // Overdue
+    if (progress <= 0) return 'bg-red-900'
     if (progress <= 25) return 'bg-red-800'
     if (progress <= 50) return 'bg-yellow-800'
     if (progress <= 75) return 'bg-green-800'
-    return 'bg-green-700' // Recently revised
-  }
-
-  const getProgressRingColor = () => {
-    const progress = getProgressPercentage()
-    if (progress <= 25) return '#EF4444' // red
-    if (progress <= 50) return '#F59E0B' // yellow
-    if (progress <= 75) return '#10B981' // green
-    return '#059669' // emerald
+    return 'bg-green-700'
   }
 
   const getRevisionTimeDisplay = () => {
     if (!lastRevised) return 'Not started'
-    if (!daysSinceRevision) return 'Revise in 7 days'
+    if (daysSinceRevision === null) return 'Calculating...'
+    if (daysSinceRevision === 0) return 'Revised today'
 
     const daysUntilRevision = revisionCycle - daysSinceRevision
     if (daysUntilRevision <= 0) return 'Revise now'
@@ -170,16 +162,15 @@ export default function JuzCard({
             </div>
             <div>
               <h3 className="text-xl font-bold">Juz {juzNumber}</h3>
-              <div className="flex items-center gap-2 text-sm">
-                <span className={`${needsRevision() ? 'text-red-300' : 'text-green-300'}`}>
-                  {getRevisionStatus()}
-                </span>
-                <span className="text-white text-opacity-60">•</span>
+              <div className="text-sm">
                 <span className="text-white text-opacity-60">
                   {getRevisionTimeDisplay()}
                 </span>
               </div>
             </div>
+          </div>
+          <div className={`text-2xl font-medium ${needsRevision() ? 'text-red-300' : 'text-green-300'}`}>
+            {getRevisionStatus()}
           </div>
         </div>
 
