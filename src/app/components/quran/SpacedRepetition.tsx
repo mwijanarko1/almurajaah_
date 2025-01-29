@@ -162,18 +162,13 @@ export default function SpacedRepetition() {
           const now = new Date()
           let lastRevisedDate: Date
 
-          const currentLastRevised = userProfile.surahProgress[currentCard.toString()]?.lastRevised
-            ? new Date(userProfile.surahProgress[currentCard.toString()].lastRevised)
-            : now
-
-          if (quality === 1) {
+          if (quality === 1) { // Needs Revision
             lastRevisedDate = new Date(now.getTime() - (userProfile.revisionCycle + 1) * 24 * 60 * 60 * 1000)
-          } else if (quality === 2) {
-            lastRevisedDate = new Date(currentLastRevised.getTime() + 6 * 24 * 60 * 60 * 1000)
-          } else if (quality === 3) {
-            lastRevisedDate = new Date(currentLastRevised.getTime() + 4 * 24 * 60 * 60 * 1000)
-          } else {
-            // Easy rating (quality === 4)
+          } else if (quality === 2) { // Hard
+            lastRevisedDate = new Date(now.getTime() - 6 * 24 * 60 * 60 * 1000)
+          } else if (quality === 3) { // Medium
+            lastRevisedDate = new Date(now.getTime() - 4 * 24 * 60 * 60 * 1000)
+          } else { // Easy
             lastRevisedDate = now
           }
 
@@ -185,8 +180,47 @@ export default function SpacedRepetition() {
             }
           }
 
+          // Check if all surahs in any juz are revised
+          const updatedJuzProgress = { ...userProfile.juzProgress }
+          const juzData = surahs.find(s => s.number === currentCard)?.juz
+          
+          if (juzData) {
+            const juzNumbers = Array.isArray(juzData) ? juzData : [juzData]
+            
+            juzNumbers.forEach(juzNumber => {
+              const surahsInJuz = surahs.filter(s => {
+                const surahJuz = Array.isArray(s.juz) ? s.juz : [s.juz]
+                return surahJuz.includes(juzNumber)
+              })
+
+              const memorizedSurahsInJuz = surahsInJuz.filter(s => 
+                userProfile.memorizedSurahs.some((ms: { number: number }) => ms.number === s.number)
+              )
+
+              // Check if all memorized surahs in this juz are recently revised
+              const allSurahsRevised = memorizedSurahsInJuz.every(s => {
+                const surahProgress = updatedSurahProgress[s.number.toString()]
+                if (!surahProgress?.lastRevised) return false
+                
+                const lastRevised = new Date(surahProgress.lastRevised)
+                const diffTime = Math.abs(now.getTime() - lastRevised.getTime())
+                const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24))
+                
+                return diffDays < (userProfile.revisionCycle || 7)
+              })
+
+              if (allSurahsRevised && memorizedSurahsInJuz.length > 0) {
+                updatedJuzProgress[juzNumber.toString()] = {
+                  ...updatedJuzProgress[juzNumber.toString()],
+                  lastRevised: now.toISOString()
+                }
+              }
+            })
+          }
+
           await updateDoc(userProfileRef, {
-            surahProgress: updatedSurahProgress
+            surahProgress: updatedSurahProgress,
+            juzProgress: updatedJuzProgress
           })
 
           const remainingDue = dueCards.filter(num => num !== currentCard)
@@ -202,7 +236,6 @@ export default function SpacedRepetition() {
       } catch (error) {
         console.error('Error updating ratings:', error)
         if (attempt < MAX_RETRIES) {
-          // Exponential backoff
           const delay = Math.min(1000 * Math.pow(2, attempt - 1), 10000)
           setTimeout(() => updateWithRetry(attempt + 1), delay)
         } else {
@@ -223,30 +256,39 @@ export default function SpacedRepetition() {
     )
   }
 
+  const InfoHeader = () => (
+    <div className="mb-6 flex justify-between items-center">
+      <div className="flex items-center gap-2">
+        <h3 className="text-xl font-semibold text-text">
+          Spaced Review Session
+        </h3>
+        <button
+          onClick={() => setShowInfoModal(true)}
+          className="p-1.5 text-text hover:bg-background/10 rounded-full transition-colors"
+          aria-label="Show spaced review rules"
+        >
+          <Info className="w-5 h-5" />
+        </button>
+      </div>
+      {currentCard && (
+        <span className="text-text-secondary">
+          {dueCards.length} surahs remaining
+        </span>
+      )}
+    </div>
+  )
+
   if (!currentCard) {
     return (
       <div className="max-w-2xl mx-auto">
-        <div className="mb-6 flex justify-between items-center">
-          <div className="flex items-center gap-2">
-            <h3 className="text-xl font-semibold text-text">
-              Spaced Review Session
-            </h3>
-            <button
-              onClick={() => setShowInfoModal(true)}
-              className="p-1.5 text-text hover:bg-background/10 rounded-full transition-colors"
-              aria-label="Show spaced review rules"
-            >
-              <Info className="w-5 h-5" />
-            </button>
-          </div>
-        </div>
-
+        <InfoHeader />
         <div className="flex flex-col items-center justify-center min-h-[400px] space-y-4 text-center">
           <h3 className="text-2xl font-semibold text-text">All caught up! 🎉</h3>
           <p className="text-text-secondary mb-6">
             No surahs due for revision right now. Check back later!
           </p>
         </div>
+        <InfoModal isOpen={showInfoModal} onClose={() => setShowInfoModal(false)} />
       </div>
     )
   }
@@ -262,23 +304,7 @@ export default function SpacedRepetition() {
         </div>
       )}
       
-      <div className="mb-6 flex justify-between items-center">
-        <div className="flex items-center gap-2">
-          <h3 className="text-xl font-semibold text-text">
-            Spaced Review Session
-          </h3>
-          <button
-            onClick={() => setShowInfoModal(true)}
-            className="p-1.5 text-text hover:bg-background/10 rounded-full transition-colors"
-            aria-label="Show spaced review rules"
-          >
-            <Info className="w-5 h-5" />
-          </button>
-        </div>
-        <span className="text-text-secondary">
-          {dueCards.length} surahs remaining
-        </span>
-      </div>
+      <InfoHeader />
 
       <motion.div
         key={currentCard}

@@ -84,12 +84,14 @@ export default function SurahCard({
   }
 
   const getRevisionTimeDisplay = () => {
-    if (!lastRevised) return 'Not started'
     if (!daysSinceRevision) return 'Revise in 7 days'
-
+    if (daysSinceRevision >= revisionCycle) return 'Revise now'
+    
     const daysUntilRevision = revisionCycle - daysSinceRevision
     if (daysUntilRevision <= 0) return 'Revise now'
-    return `Revise in ${daysUntilRevision} days`
+    
+    const daysText = daysUntilRevision === 1 ? 'day' : 'days'
+    return `Revise in ${daysUntilRevision} ${daysText}`
   }
 
   const handleRevisionUpdate = async () => {

@@ -117,94 +117,15 @@ export default function JuzCard({
   }
 
   const getRevisionTimeDisplay = () => {
-    if (!lastRevised) return 'Not started'
-    if (daysSinceRevision === null) return 'Calculating...'
-    if (daysSinceRevision === 0) return 'Revised today'
-
+    if (!daysSinceRevision) return 'Revise in 7 days'
+    if (daysSinceRevision >= revisionCycle) return 'Revise now'
+    
     const daysUntilRevision = revisionCycle - daysSinceRevision
     if (daysUntilRevision <= 0) return 'Revise now'
-    return `Revise in ${daysUntilRevision} days`
+    
+    const daysText = daysUntilRevision === 1 ? 'day' : 'days'
+    return `Revise in ${daysUntilRevision} ${daysText}`
   }
 
   return (
-    <div className={`rounded-lg p-6 text-white ${getCardColor()} transition-colors duration-300 relative`}>
-      <div className="flex flex-col gap-4">
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-4">
-            <div className="relative w-12 h-12">
-              {/* Progress Circle */}
-              <svg className="w-full h-full -rotate-90 transform" viewBox="0 0 36 36">
-                {/* Background circle */}
-                <circle
-                  cx="18"
-                  cy="18"
-                  r="16"
-                  fill="none"
-                  className="stroke-white/20"
-                  strokeWidth="3"
-                />
-                {/* Progress circle */}
-                <circle
-                  cx="18"
-                  cy="18"
-                  r="16"
-                  fill="none"
-                  stroke="white"
-                  strokeWidth="3"
-                  strokeDasharray={`${getProgressPercentage() * 100.53/100} 100`}
-                  className="transition-all duration-300"
-                />
-              </svg>
-              {/* Juz Number */}
-              <div className="absolute inset-0 flex items-center justify-center text-xl font-bold">
-                {juzNumber}
-              </div>
-            </div>
-            <div>
-              <h3 className="text-xl font-bold">Juz {juzNumber}</h3>
-              <div className="text-sm">
-                <span className="text-white text-opacity-60">
-                  {getRevisionTimeDisplay()}
-                </span>
-              </div>
-            </div>
-          </div>
-          <div className={`text-2xl font-medium ${needsRevision() ? 'text-red-300' : 'text-green-300'}`}>
-            {getRevisionStatus()}
-          </div>
-        </div>
-
-        <div className="flex items-center gap-3">
-          <button
-            onClick={handleStrengthClick}
-            className="bg-black bg-opacity-20 px-3 py-1.5 rounded-md flex items-center gap-2 text-sm hover:bg-opacity-30 transition-colors"
-          >
-            <span className={strengthColors[strength]}>
-              {strengthIcons[strength]}
-            </span>
-            <span className={strengthColors[strength]}>
-              {strength}
-            </span>
-          </button>
-
-          <button
-            onClick={handleRevisionUpdate}
-            disabled={isUpdating}
-            className="flex-1 py-1.5 px-3 rounded-md transition-colors text-sm font-medium bg-black bg-opacity-20 hover:bg-opacity-30 disabled:opacity-50 disabled:cursor-not-allowed"
-          >
-            {isUpdating ? 'Updating...' : 'Mark as Revised'}
-          </button>
-        </div>
-
-        {/* View Details Link */}
-        <Link
-          href={`/juz/${juzNumber}`}
-          className="flex items-center justify-between text-[#2ECC71] hover:text-white transition-colors mt-4 pt-4 border-t border-gray-700"
-        >
-          <span>View Surahs</span>
-          <ChevronRight className="w-5 h-5" />
-        </Link>
-      </div>
-    </div>
-  )
-} 
+    <div className={`
