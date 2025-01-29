@@ -255,7 +255,7 @@ export default function Profile() {
                   className="flex items-center gap-2 px-4 py-2 rounded-md bg-background text-text-secondary hover:bg-surface transition-colors"
                 >
                   <X className="w-4 h-4" />
-                  Cancel
+                  Back to Home
                 </button>
                 <button
                   onClick={handleSave}
