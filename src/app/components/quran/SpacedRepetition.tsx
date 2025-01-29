@@ -173,7 +173,8 @@ export default function SpacedRepetition() {
           } else if (quality === 3) {
             lastRevisedDate = new Date(currentLastRevised.getTime() + 4 * 24 * 60 * 60 * 1000)
           } else {
-            lastRevisedDate = currentLastRevised
+            // Easy rating (quality === 4)
+            lastRevisedDate = now
           }
 
           const updatedSurahProgress = {
