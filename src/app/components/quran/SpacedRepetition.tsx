@@ -80,14 +80,18 @@ export default function SpacedRepetition() {
   const [dueCards, setDueCards] = useState<number[]>([])
   const [currentCard, setCurrentCard] = useState<number | null>(null)
   const [loading, setLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
   const [showInfoModal, setShowInfoModal] = useState(false)
   const [isChanging, setIsChanging] = useState(false)
+  const [retryCount, setRetryCount] = useState(0)
+  const MAX_RETRIES = 3
 
   useEffect(() => {
     if (!user) return
 
-    const fetchDueCards = async () => {
+    const fetchDueCards = async (attempt = 1) => {
       try {
+        setError(null)
         const userDoc = await getDoc(doc(db, 'userProfiles', user.uid))
         if (!userDoc.exists()) return
 
@@ -121,7 +125,14 @@ export default function SpacedRepetition() {
         setLoading(false)
       } catch (error) {
         console.error('Error fetching due cards:', error)
-        setLoading(false)
+        if (attempt < MAX_RETRIES) {
+          // Exponential backoff
+          const delay = Math.min(1000 * Math.pow(2, attempt - 1), 10000)
+          setTimeout(() => fetchDueCards(attempt + 1), delay)
+        } else {
+          setError('Failed to load your revision cards. Please check your internet connection and try again.')
+          setLoading(false)
+        }
       }
     }
 
@@ -139,55 +150,68 @@ export default function SpacedRepetition() {
     if (!user || !currentCard) return
 
     setIsChanging(true)
+    setError(null)
 
-    try {
-      const userProfileRef = doc(db, 'userProfiles', user.uid)
-      const userProfileSnap = await getDoc(userProfileRef)
-      const userProfile = userProfileSnap.data()
+    const updateWithRetry = async (attempt = 1) => {
+      try {
+        const userProfileRef = doc(db, 'userProfiles', user.uid)
+        const userProfileSnap = await getDoc(userProfileRef)
+        const userProfile = userProfileSnap.data()
 
-      if (userProfile) {
-        const now = new Date()
-        let lastRevisedDate: Date
+        if (userProfile) {
+          const now = new Date()
+          let lastRevisedDate: Date
 
-        const currentLastRevised = userProfile.surahProgress[currentCard.toString()]?.lastRevised
-          ? new Date(userProfile.surahProgress[currentCard.toString()].lastRevised)
-          : now
+          const currentLastRevised = userProfile.surahProgress[currentCard.toString()]?.lastRevised
+            ? new Date(userProfile.surahProgress[currentCard.toString()].lastRevised)
+            : now
 
-        if (quality === 1) {
-          lastRevisedDate = new Date(now.getTime() - (userProfile.revisionCycle + 1) * 24 * 60 * 60 * 1000)
-        } else if (quality === 2) {
-          lastRevisedDate = new Date(currentLastRevised.getTime() + 6 * 24 * 60 * 60 * 1000)
-        } else if (quality === 3) {
-          lastRevisedDate = new Date(currentLastRevised.getTime() + 4 * 24 * 60 * 60 * 1000)
-        } else {
-          lastRevisedDate = currentLastRevised
-        }
-
-        const updatedSurahProgress = {
-          ...userProfile.surahProgress,
-          [currentCard.toString()]: {
-            ...userProfile.surahProgress[currentCard.toString()],
-            lastRevised: lastRevisedDate.toISOString()
+          if (quality === 1) {
+            lastRevisedDate = new Date(now.getTime() - (userProfile.revisionCycle + 1) * 24 * 60 * 60 * 1000)
+          } else if (quality === 2) {
+            lastRevisedDate = new Date(currentLastRevised.getTime() + 6 * 24 * 60 * 60 * 1000)
+          } else if (quality === 3) {
+            lastRevisedDate = new Date(currentLastRevised.getTime() + 4 * 24 * 60 * 60 * 1000)
+          } else {
+            lastRevisedDate = currentLastRevised
           }
+
+          const updatedSurahProgress = {
+            ...userProfile.surahProgress,
+            [currentCard.toString()]: {
+              ...userProfile.surahProgress[currentCard.toString()],
+              lastRevised: lastRevisedDate.toISOString()
+            }
+          }
+
+          await updateDoc(userProfileRef, {
+            surahProgress: updatedSurahProgress
+          })
+
+          const remainingDue = dueCards.filter(num => num !== currentCard)
+          const nextCard = getNextCard(currentCard, remainingDue)
+          
+          setTimeout(() => {
+            setDueCards(remainingDue)
+            setCurrentCard(nextCard)
+            setIsChanging(false)
+            setError(null)
+          }, 300) // Match the animation duration
         }
-
-        await updateDoc(userProfileRef, {
-          surahProgress: updatedSurahProgress
-        })
-
-        const remainingDue = dueCards.filter(num => num !== currentCard)
-        const nextCard = getNextCard(currentCard, remainingDue)
-        
-        setTimeout(() => {
-          setDueCards(remainingDue)
-          setCurrentCard(nextCard)
+      } catch (error) {
+        console.error('Error updating ratings:', error)
+        if (attempt < MAX_RETRIES) {
+          // Exponential backoff
+          const delay = Math.min(1000 * Math.pow(2, attempt - 1), 10000)
+          setTimeout(() => updateWithRetry(attempt + 1), delay)
+        } else {
+          setError('Failed to save your rating. Your progress will be saved when you reconnect.')
           setIsChanging(false)
-        }, 300) // Match the animation duration
+        }
       }
-    } catch (error) {
-      console.error('Error updating ratings:', error)
-      setIsChanging(false)
     }
+
+    updateWithRetry()
   }
 
   if (loading) {
@@ -231,6 +255,12 @@ export default function SpacedRepetition() {
 
   return (
     <div className="max-w-2xl mx-auto">
+      {error && (
+        <div className="mb-6 p-4 bg-red-500/10 border border-red-500 rounded-lg text-red-500">
+          {error}
+        </div>
+      )}
+      
       <div className="mb-6 flex justify-between items-center">
         <div className="flex items-center gap-2">
           <h3 className="text-xl font-semibold text-text">

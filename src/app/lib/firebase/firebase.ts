@@ -1,6 +1,6 @@
 import { initializeApp, getApps } from 'firebase/app'
-import { getAuth } from 'firebase/auth'
-import { getFirestore } from 'firebase/firestore'
+import { getAuth, setPersistence, browserLocalPersistence } from 'firebase/auth'
+import { getFirestore, enableIndexedDbPersistence } from 'firebase/firestore'
 
 const firebaseConfig = {
   apiKey: process.env.NEXT_PUBLIC_FIREBASE_API_KEY,
@@ -16,4 +16,24 @@ const app = getApps().length === 0 ? initializeApp(firebaseConfig) : getApps()[0
 const auth = getAuth(app)
 const db = getFirestore(app)
 
-export { auth, db } 
+// Enable Auth persistence
+setPersistence(auth, browserLocalPersistence)
+  .catch((error) => {
+    console.error('Error enabling auth persistence:', error)
+  })
+
+// Enable Firestore offline persistence
+enableIndexedDbPersistence(db)
+  .catch((error) => {
+    if (error.code === 'failed-precondition') {
+      // Multiple tabs open, persistence can only be enabled in one tab at a time
+      console.warn('Multiple tabs open, persistence enabled in first tab only')
+    } else if (error.code === 'unimplemented') {
+      // The current browser doesn't support persistence
+      console.warn('Current browser does not support persistence')
+    } else {
+      console.error('Error enabling Firestore persistence:', error)
+    }
+  })
+
+export { app, auth, db } 
