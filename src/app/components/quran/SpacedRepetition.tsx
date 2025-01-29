@@ -55,9 +55,9 @@ function InfoModal({ isOpen, onClose }: { isOpen: boolean; onClose: () => void }
               <h3 className="font-medium mb-2">Rating System:</h3>
               <ul className="list-disc pl-5 space-y-2">
                 <li><strong>Needs Revision:</strong> Resets the last revised date to make it appear as needing revision</li>
-                <li><strong>Hard:</strong> Adds 6 days to your last revision date</li>
-                <li><strong>Medium:</strong> Adds 4 days to your last revision date</li>
-                <li><strong>Easy:</strong> Keeps your current revision date</li>
+                <li><strong>Hard:</strong> Sets the revision date to show up in 1 day</li>
+                <li><strong>Medium:</strong> Sets the revision date to show up in 3 days</li>
+                <li><strong>Easy:</strong> Sets the revision date to show up after your full revision cycle</li>
               </ul>
             </div>
             <div>
@@ -164,10 +164,10 @@ export default function SpacedRepetition() {
 
           if (quality === 1) { // Needs Revision
             lastRevisedDate = new Date(now.getTime() - (userProfile.revisionCycle + 1) * 24 * 60 * 60 * 1000)
-          } else if (quality === 2) { // Hard
-            lastRevisedDate = new Date(now.getTime() - 6 * 24 * 60 * 60 * 1000)
-          } else if (quality === 3) { // Medium
-            lastRevisedDate = new Date(now.getTime() - 4 * 24 * 60 * 60 * 1000)
+          } else if (quality === 2) { // Hard - Show up in 1 day
+            lastRevisedDate = new Date(now.getTime() - (userProfile.revisionCycle - 1) * 24 * 60 * 60 * 1000)
+          } else if (quality === 3) { // Medium - Show up in 3 days
+            lastRevisedDate = new Date(now.getTime() - (userProfile.revisionCycle - 3) * 24 * 60 * 60 * 1000)
           } else { // Easy - Reset to show up after revisionCycle days
             lastRevisedDate = now
           }
