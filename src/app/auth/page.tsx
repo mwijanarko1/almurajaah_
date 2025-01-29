@@ -13,7 +13,7 @@ export default function AuthPage() {
   const [name, setName] = useState('')
   const [error, setError] = useState('')
   const [isSignUp, setIsSignUp] = useState(false)
-  const { signIn, signUp, signInWithGoogle, isSetupComplete } = useAuthContext()
+  const { signIn, signUp, signInWithGoogle } = useAuthContext()
   const router = useRouter()
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -23,11 +23,10 @@ export default function AuthPage() {
     try {
       if (isSignUp) {
         await signUp(email, password, name)
-        router.push('/profile-setup')
       } else {
         await signIn(email, password)
-        router.push(isSetupComplete ? '/dashboard' : '/profile-setup')
       }
+      // Redirect is handled in AuthContext
     } catch (err: any) {
       console.error('Auth error:', err)
       setError(err.message || 'Failed to authenticate. Please check your credentials.')
@@ -39,10 +38,7 @@ export default function AuthPage() {
     
     try {
       await signInWithGoogle()
-      // Only navigate if sign in was successful
-      if (auth.currentUser) {
-        router.push(isSetupComplete ? '/dashboard' : '/profile-setup')
-      }
+      // Redirect is handled in AuthContext
     } catch (err: any) {
       console.error('Google sign in error:', err)
       setError(err.message || 'Failed to sign in with Google.')
