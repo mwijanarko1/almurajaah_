@@ -117,6 +117,7 @@ export default function JuzCard({
   }
 
   const getRevisionTimeDisplay = () => {
+    if (!lastRevised) return 'Not Started'
     if (!daysSinceRevision) return `Revise in ${revisionCycle} days`
     if (daysSinceRevision >= revisionCycle) return 'Revise now'
     
