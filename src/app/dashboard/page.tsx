@@ -320,17 +320,19 @@ export default function Dashboard() {
     if (!userProfile) return []
 
     if (viewMode === 'juz') {
-      // Only show Juz that are either directly selected or have all their Surahs selected
+      // Show Juz that are either directly selected or have at least one Surah selected
       return Array.from({ length: 30 }, (_, i) => i + 1).filter(juzNum => {
         const isDirectlySelected = userProfile.memorizedJuz.includes(juzNum)
         if (isDirectlySelected) return true
 
-        // Check if all Surahs in this Juz are selected
+        // Check if any Surah in this Juz is selected for this specific juz
         const surahsInJuz = surahs.filter(surah => surah.juz.includes(juzNum))
-        const allSurahsSelected = surahsInJuz.every(surah => 
-          userProfile.memorizedSurahs.some(s => s.number === surah.number)
+        const hasSelectedSurah = surahsInJuz.some(surah => 
+          userProfile.memorizedSurahs.some(s => 
+            s.number === surah.number && s.juz.includes(juzNum)
+          )
         )
-        return allSurahsSelected
+        return hasSelectedSurah
       })
     } else {
       // In Surah view, show all selected Surahs regardless of Juz selection
@@ -566,23 +568,30 @@ export default function Dashboard() {
                   juzNumber={surah.juz[0]}
                   lastRevised={userProfile?.surahProgress[surah.number.toString()]?.lastRevised || null}
                   strength={userProfile?.surahProgress[surah.number.toString()]?.strength || 'Medium'}
-                  onRevisionUpdate={() => handleSurahRevisionUpdate(surah.number, new Date().toISOString())}
-                  onStrengthChange={(newStrength) => handleSurahStrengthChange(surah.number, newStrength)}
                   revisionCycle={userProfile?.revisionCycle || 7}
+                  onStrengthChange={(newStrength) => handleSurahStrengthChange(surah.number, newStrength)}
+                  onRevisionUpdate={handleSurahRevisionUpdate}
                 />
               ))
             ) : (
-              (sortedItems as number[]).map((juzNum) => (
-                <JuzCard
-                  key={juzNum}
-                  juzNumber={juzNum}
-                  lastRevised={userProfile?.juzProgress[juzNum.toString()]?.lastRevised || null}
-                  strength={userProfile?.juzProgress[juzNum.toString()]?.strength || 'Medium'}
-                  onRevisionUpdate={() => handleJuzRevisionUpdate(juzNum, new Date().toISOString())}
-                  onStrengthChange={(newStrength) => handleJuzStrengthChange(juzNum, newStrength)}
-                  revisionCycle={userProfile?.revisionCycle || 7}
-                />
-              ))
+              (sortedItems as number[]).map((juzNumber) => {
+                const juz = juzData.find(j => j.number === juzNumber)
+                if (!juz) return null
+                
+                return (
+                  <JuzCard
+                    key={juzNumber}
+                    juzNumber={juzNumber}
+                    lastRevised={userProfile?.juzProgress[juzNumber.toString()]?.lastRevised || null}
+                    strength={userProfile?.juzProgress[juzNumber.toString()]?.strength || 'Medium'}
+                    revisionCycle={userProfile?.revisionCycle || 7}
+                    onStrengthChange={(newStrength) => handleJuzStrengthChange(juzNumber, newStrength)}
+                    onRevisionUpdate={handleJuzRevisionUpdate}
+                    memorizedSurahs={userProfile?.memorizedSurahs || []}
+                    totalSurahsInJuz={juz.surahs.length}
+                  />
+                )
+              })
             )}
           </div>
         </motion.div>
