@@ -7,6 +7,11 @@ import { useAuthContext } from '@/app/lib/contexts/AuthContext'
 import { ChevronRight } from 'lucide-react'
 import Link from 'next/link'
 
+export interface SelectedSurah {
+  number: number
+  juz: number[]
+}
+
 interface JuzCardProps {
   juzNumber: number
   lastRevised: string | null
@@ -14,6 +19,8 @@ interface JuzCardProps {
   revisionCycle: number
   onStrengthChange: (newStrength: 'Weak' | 'Medium' | 'Strong') => void
   onRevisionUpdate: (juzNumber: number, date: string) => void
+  memorizedSurahs: SelectedSurah[]
+  totalSurahsInJuz: number
 }
 
 export default function JuzCard({ 
@@ -22,7 +29,9 @@ export default function JuzCard({
   strength,
   revisionCycle,
   onStrengthChange,
-  onRevisionUpdate
+  onRevisionUpdate,
+  memorizedSurahs,
+  totalSurahsInJuz
 }: JuzCardProps) {
   const [daysSinceRevision, setDaysSinceRevision] = useState<number | null>(null)
   const { user } = useAuthContext()
@@ -137,52 +146,31 @@ export default function JuzCard({
     return `Revise in ${daysUntilRevision} ${daysText}`
   }
 
+  const getMemorizationPercentage = () => {
+    const memorizedCount = memorizedSurahs.filter(surah => 
+      surah.juz.includes(juzNumber)
+    ).length
+    return Math.round((memorizedCount / totalSurahsInJuz) * 100)
+  }
+
   return (
     <div className={`rounded-lg p-6 text-white ${getCardColor()} transition-colors duration-300 relative`}>
       <div className="flex flex-col gap-4">
         <div className="flex items-center justify-between">
-          <div className="flex items-center gap-4">
-            <div className="relative w-12 h-12">
-              {/* Progress Circle */}
-              <svg className="w-full h-full -rotate-90 transform" viewBox="0 0 36 36">
-                {/* Background circle */}
-                <circle
-                  cx="18"
-                  cy="18"
-                  r="16"
-                  fill="none"
-                  className="stroke-white/20"
-                  strokeWidth="3"
-                />
-                {/* Progress circle */}
-                <circle
-                  cx="18"
-                  cy="18"
-                  r="16"
-                  fill="none"
-                  stroke="white"
-                  strokeWidth="3"
-                  strokeDasharray={`${getProgressPercentage() * 100.53/100} 100`}
-                  className="transition-all duration-300"
-                />
-              </svg>
-              {/* Juz Number */}
-              <div className="absolute inset-0 flex items-center justify-center text-xl font-bold">
-                {juzNumber}
-              </div>
+          <div>
+            <h3 className="text-xl font-bold">Juz {juzNumber}</h3>
+            <div className="flex items-center gap-2 text-sm">
+              <span className={`${needsRevision() ? 'text-red-300' : 'text-green-300'}`}>
+                {getRevisionStatus()}
+              </span>
+              <span className="text-white text-opacity-60">•</span>
+              <span className="text-white text-opacity-60">
+                {getRevisionTimeDisplay()}
+              </span>
             </div>
-            <div>
-              <h3 className="text-xl font-bold">Juz {juzNumber}</h3>
-              <div className="flex items-center gap-2 text-sm">
-                <span className={`${needsRevision() ? 'text-red-300' : 'text-green-300'}`}>
-                  {getRevisionStatus()}
-                </span>
-                <span className="text-white text-opacity-60">•</span>
-                <span className="text-white text-opacity-60">
-                  {getRevisionTimeDisplay()}
-                </span>
-              </div>
-            </div>
+          </div>
+          <div className="text-lg font-semibold">
+            {getMemorizationPercentage()}% memorized
           </div>
         </div>
 

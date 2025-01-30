@@ -14,6 +14,7 @@ import { juzData } from '@/app/lib/data/quranData'
 import PageLayout from '@/app/components/ui/PageLayout'
 import { motion } from 'framer-motion'
 import SpacedRepetition from '@/app/components/quran/SpacedRepetition'
+import type { SelectedSurah } from '@/app/components/JuzCard'
 
 interface JuzProgress {
   lastRevised: string | null
@@ -23,11 +24,6 @@ interface JuzProgress {
 interface SurahProgress {
   lastRevised: string | null
   strength: 'Weak' | 'Medium' | 'Strong'
-}
-
-interface SelectedSurah {
-  number: number
-  juz: number[]
 }
 
 interface UserProfile {
