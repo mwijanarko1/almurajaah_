@@ -470,12 +470,12 @@ export default function Dashboard() {
 
   return (
     <PageLayout>
-      <div className="container mx-auto px-4 py-8">
+      <div className="container mx-auto px-4 py-4 sm:py-8">
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.5 }}
-          className="space-y-8"
+          className="space-y-6 sm:space-y-8"
         >
           {/* Flippable Summary Card */}
           <FlippableCard 
@@ -490,37 +490,37 @@ export default function Dashboard() {
           />
 
           {/* View and Sort Controls */}
-          <div className="mb-6 flex justify-between items-center">
-            <div className="flex items-center space-x-4">
+          <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-4">
+            <div className="flex items-center gap-2">
               <button
                 onClick={() => setViewMode('juz')}
-                className={`flex items-center space-x-2 px-4 py-2 rounded-lg ${
+                className={`flex items-center gap-2 px-3 sm:px-4 py-2 rounded-lg text-sm sm:text-base ${
                   viewMode === 'juz'
                     ? 'bg-emerald-600 text-white'
                     : 'bg-emerald-100 text-emerald-800'
                 }`}
               >
-                <LayoutGrid className="w-5 h-5" />
+                <LayoutGrid className="w-4 h-4 sm:w-5 sm:h-5" />
                 <span>Juz View</span>
               </button>
               <button
                 onClick={() => setViewMode('surah')}
-                className={`flex items-center space-x-2 px-4 py-2 rounded-lg ${
+                className={`flex items-center gap-2 px-3 sm:px-4 py-2 rounded-lg text-sm sm:text-base ${
                   viewMode === 'surah'
                     ? 'bg-emerald-600 text-white'
                     : 'bg-emerald-100 text-emerald-800'
                 }`}
               >
-                <List className="w-5 h-5" />
+                <List className="w-4 h-4 sm:w-5 sm:h-5" />
                 <span>Surah View</span>
               </button>
             </div>
             
             <button
               onClick={() => router.push('/profile')}
-              className="flex items-center space-x-2 px-4 py-2 rounded-lg bg-emerald-600 text-white hover:bg-emerald-700 transition-colors"
+              className="flex items-center gap-2 px-3 sm:px-4 py-2 rounded-lg text-sm sm:text-base bg-emerald-600 text-white hover:bg-emerald-700 transition-colors"
             >
-              <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+              <svg xmlns="http://www.w3.org/2000/svg" className="w-4 h-4 sm:w-5 sm:h-5" viewBox="0 0 20 20" fill="currentColor">
                 <path fillRule="evenodd" d="M10 3a1 1 0 011 1v5h5a1 1 0 110 2h-5v5a1 1 0 11-2 0v-5H4a1 1 0 110-2h5V4a1 1 0 011-1z" clipRule="evenodd" />
               </svg>
               <span>Add Juz/Surah</span>
@@ -530,7 +530,7 @@ export default function Dashboard() {
           <select
             value={sortBy}
             onChange={(e) => setSortBy(e.target.value as SortOption)}
-            className="bg-surface text-text px-4 py-2 rounded-lg border border-background/10"
+            className="w-full sm:w-auto bg-surface text-text px-3 sm:px-4 py-2 rounded-lg border border-background/10 text-sm sm:text-base"
           >
             <option value="number">Sort by Number</option>
             <option value="lastRevised">Sort by Last Revised</option>
@@ -538,7 +538,7 @@ export default function Dashboard() {
           </select>
 
           {/* Items Grid */}
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
             {viewMode === 'surah' ? (
               (sortedItems as typeof surahs).map((surah) => (
                 <SurahCard
