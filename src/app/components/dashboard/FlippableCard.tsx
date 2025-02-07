@@ -20,30 +20,31 @@ export default function FlippableCard({ userName, quote, stats }: FlippableCardP
   const [isFlipped, setIsFlipped] = useState(false)
 
   return (
-    <div className="relative h-[300px] sm:h-[250px] perspective-1000">
+    <div className="w-full perspective-1000">
       <motion.div
         initial={false}
         animate={{ rotateY: isFlipped ? 180 : 0 }}
         transition={{ duration: 0.6 }}
-        className="w-full h-full relative preserve-3d"
+        className="w-full preserve-3d"
+        style={{ minHeight: 'fit-content' }}
       >
         {/* Front of card */}
-        <div className={`absolute w-full h-full backface-hidden ${isFlipped ? 'invisible' : ''}`}>
-          <div className="bg-surface rounded-lg p-4 sm:p-6 h-full flex flex-col">
-            <div className="flex justify-between items-start">
-              <h1 className="text-2xl sm:text-3xl font-bold text-text">
+        <div className={`w-full backface-hidden ${isFlipped ? 'invisible' : ''}`}>
+          <div className="bg-surface rounded-lg p-4 sm:p-6 w-full">
+            <div className="flex justify-between items-start gap-4">
+              <h1 className="text-2xl sm:text-3xl font-bold text-text flex-1">
                 Welcome back,<br className="sm:hidden" /> {userName}
               </h1>
               <button
                 onClick={() => setIsFlipped(true)}
-                className="p-2 rounded-full hover:bg-background/20 transition-colors"
+                className="p-2 rounded-full hover:bg-background/20 transition-colors shrink-0"
                 aria-label="View Stats"
               >
                 <BarChart3 className="w-6 h-6 text-emerald-500" />
               </button>
             </div>
             
-            <div className="flex-1 flex flex-col">
+            <div className="flex flex-col">
               <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 mt-2">
                 <div className="bg-background/20 rounded-lg p-3">
                   <h3 className="text-green-400 text-base sm:text-lg font-semibold">Relax</h3>
@@ -64,32 +65,33 @@ export default function FlippableCard({ userName, quote, stats }: FlippableCardP
                   </p>
                 </div>
               </div>
-              <p className="text-text-secondary text-center italic text-sm sm:text-base mt-2">{quote}</p>
+              <p className="text-text-secondary text-center italic text-sm sm:text-base mt-4">{quote}</p>
             </div>
           </div>
         </div>
 
         {/* Back of card */}
         <div 
-          className={`absolute w-full h-full backface-hidden rotate-y-180 ${!isFlipped ? 'invisible' : ''}`}
+          className={`w-full backface-hidden rotate-y-180 ${!isFlipped ? 'invisible' : ''}`}
+          style={{ position: 'absolute', top: 0 }}
         >
-          <div className="bg-surface rounded-lg p-4 sm:p-6 h-full flex flex-col">
-            <div className="flex justify-between items-start">
-              <h1 className="text-2xl sm:text-3xl font-bold text-text">
+          <div className="bg-surface rounded-lg p-4 sm:p-6 w-full">
+            <div className="flex justify-between items-start gap-4">
+              <h1 className="text-2xl sm:text-3xl font-bold text-text flex-1">
                 Stats
               </h1>
               <button
                 onClick={() => setIsFlipped(false)}
-                className="p-2 rounded-full hover:bg-background/20 transition-colors"
+                className="p-2 rounded-full hover:bg-background/20 transition-colors shrink-0"
                 aria-label="Back to Welcome"
               >
                 <BarChart3 className="w-6 h-6 text-emerald-500" />
               </button>
             </div>
             
-            <div className="flex-1 flex flex-col">
+            <div className="flex flex-col">
               <PageRevisionStats />
-              <p className="text-text-secondary text-center italic text-sm sm:text-base mt-2">{quote}</p>
+              <p className="text-text-secondary text-center italic text-sm sm:text-base mt-4">{quote}</p>
             </div>
           </div>
         </div>
