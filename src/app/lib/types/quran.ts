@@ -9,4 +9,11 @@ export interface PageRevisionStats {
   totalPagesRevised: number
   totalPages: number
   lastRevisedPages: number[]
+  lastResetDate?: string
+}
+
+export interface StreakStats {
+  currentStreak: number
+  lastLoginDate: string
+  bestStreak: number
 } 

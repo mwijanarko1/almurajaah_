@@ -34,6 +34,11 @@ interface UserProfile {
   juzProgress: { [key: string]: JuzProgress }
   surahProgress: { [key: string]: SurahProgress }
   revisionCycle: number
+  streakStats?: {
+    currentStreak: number
+    lastLoginDate: string
+    bestStreak: number
+  }
 }
 
 type SortOption = 'number' | 'lastRevised' | 'strength'
@@ -69,6 +74,8 @@ export default function Dashboard() {
       const userDoc = await getDoc(doc(db, 'userProfiles', user.uid))
       if (userDoc.exists()) {
         const data = userDoc.data() as UserProfile
+        
+        // Initialize missing fields
         if (!data.juzProgress) {
           data.juzProgress = {}
           data.memorizedJuz.forEach(juzNum => {
@@ -84,12 +91,57 @@ export default function Dashboard() {
         if (!data.revisionCycle) {
           data.revisionCycle = 7
         }
+
+        // Handle streak logic
+        const today = new Date()
+        today.setHours(0, 0, 0, 0)
+        
+        const lastLoginDate = data.streakStats?.lastLoginDate ? 
+          new Date(data.streakStats.lastLoginDate) : null
+        lastLoginDate?.setHours(0, 0, 0, 0)
+
+        let currentStreak = data.streakStats?.currentStreak || 0
+        let bestStreak = data.streakStats?.bestStreak || 0
+
+        if (!lastLoginDate) {
+          // First time login
+          currentStreak = 1
+          bestStreak = 1
+        } else {
+          const diffTime = Math.abs(today.getTime() - lastLoginDate.getTime())
+          const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24))
+
+          if (diffDays === 1) {
+            // Consecutive day
+            currentStreak++
+            bestStreak = Math.max(currentStreak, bestStreak)
+          } else if (diffDays > 1) {
+            // Streak broken
+            currentStreak = 1
+          }
+          // If diffDays === 0, same day login, keep current streak
+        }
+
+        // Update streak information
         await updateDoc(doc(db, 'userProfiles', user.uid), {
           juzProgress: data.juzProgress,
           surahProgress: data.surahProgress,
-          revisionCycle: data.revisionCycle
+          revisionCycle: data.revisionCycle,
+          streakStats: {
+            currentStreak,
+            lastLoginDate: today.toISOString(),
+            bestStreak
+          }
         })
-        setUserProfile(data)
+
+        setUserProfile({
+          ...data,
+          streakStats: {
+            currentStreak,
+            lastLoginDate: today.toISOString(),
+            bestStreak
+          }
+        })
       }
     }
 
@@ -334,9 +386,7 @@ export default function Dashboard() {
       })
     } else {
       // In Surah view, show all selected Surahs regardless of Juz selection
-      return surahs.filter(surah => 
-        userProfile.memorizedSurahs.some(s => s.number === surah.number)
-      )
+      return userProfile.memorizedSurahs.map(s => s.number)
     }
   }, [viewMode, userProfile])
 
@@ -350,32 +400,21 @@ export default function Dashboard() {
 
         switch (sortBy) {
           case 'lastRevised': {
-            if (!juzA?.lastRevised && !juzB?.lastRevised) return 0
+            // If neither has been revised, sort by number
+            if (!juzA?.lastRevised && !juzB?.lastRevised) return Number(a) - Number(b)
+            // If only one hasn't been revised, it should come first
             if (!juzA?.lastRevised) return -1
             if (!juzB?.lastRevised) return 1
 
-            const dateA = new Date(juzA.lastRevised)
-            const dateB = new Date(juzB.lastRevised)
-            const today = new Date()
-            today.setHours(0, 0, 0, 0)
-            dateA.setHours(0, 0, 0, 0)
-            dateB.setHours(0, 0, 0, 0)
-
-            const daysA = Math.ceil(Math.abs(today.getTime() - dateA.getTime()) / (1000 * 60 * 60 * 24))
-            const daysB = Math.ceil(Math.abs(today.getTime() - dateB.getTime()) / (1000 * 60 * 60 * 24))
-
-            const needsRevisionA = daysA >= userProfile.revisionCycle
-            const needsRevisionB = daysB >= userProfile.revisionCycle
-
-            if (needsRevisionA && !needsRevisionB) return -1
-            if (!needsRevisionA && needsRevisionB) return 1
-
-            return daysB - daysA
+            // Sort by date, oldest first
+            return new Date(juzA.lastRevised).getTime() - new Date(juzB.lastRevised).getTime()
           }
           
           case 'strength': {
             const strengthOrder = { Weak: 0, Medium: 1, Strong: 2 }
-            return strengthOrder[juzB?.strength || 'Medium'] - strengthOrder[juzA?.strength || 'Medium']
+            // Sort by strength (weak first), then by number if same strength
+            const strengthDiff = strengthOrder[juzA?.strength || 'Medium'] - strengthOrder[juzB?.strength || 'Medium']
+            return strengthDiff === 0 ? Number(a) - Number(b) : strengthDiff
           }
           
           default: // 'number'
@@ -388,16 +427,21 @@ export default function Dashboard() {
 
         switch (sortBy) {
           case 'lastRevised': {
-            if (!surahA?.lastRevised && !surahB?.lastRevised) return 0
+            // If neither has been revised, sort by number
+            if (!surahA?.lastRevised && !surahB?.lastRevised) return Number(a) - Number(b)
+            // If only one hasn't been revised, it should come first
             if (!surahA?.lastRevised) return -1
             if (!surahB?.lastRevised) return 1
 
-            return new Date(surahB.lastRevised).getTime() - new Date(surahA.lastRevised).getTime()
+            // Sort by date, oldest first
+            return new Date(surahA.lastRevised).getTime() - new Date(surahB.lastRevised).getTime()
           }
           
           case 'strength': {
             const strengthOrder = { Weak: 0, Medium: 1, Strong: 2 }
-            return strengthOrder[surahB?.strength || 'Medium'] - strengthOrder[surahA?.strength || 'Medium']
+            // Sort by strength (weak first), then by number if same strength
+            const strengthDiff = strengthOrder[surahA?.strength || 'Medium'] - strengthOrder[surahB?.strength || 'Medium']
+            return strengthDiff === 0 ? Number(a) - Number(b) : strengthDiff
           }
           
           default: // 'number'
@@ -487,6 +531,10 @@ export default function Dashboard() {
               totalItems: viewMode === 'juz' ? items.length : userProfile.memorizedSurahs.length,
               viewMode
             }}
+            streak={{
+              currentStreak: userProfile.streakStats?.currentStreak || 0,
+              bestStreak: userProfile.streakStats?.bestStreak || 0
+            }}
           />
 
           {/* View and Sort Controls */}
@@ -540,19 +588,24 @@ export default function Dashboard() {
           {/* Items Grid */}
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
             {viewMode === 'surah' ? (
-              (sortedItems as typeof surahs).map((surah) => (
-                <SurahCard
-                  key={surah.number}
-                  surahNumber={surah.number}
-                  surahName={surah.name}
-                  juzNumber={surah.juz[0]}
-                  lastRevised={userProfile?.surahProgress[surah.number.toString()]?.lastRevised || null}
-                  strength={userProfile?.surahProgress[surah.number.toString()]?.strength || 'Medium'}
-                  revisionCycle={userProfile?.revisionCycle || 7}
-                  onStrengthChange={(newStrength) => handleSurahStrengthChange(surah.number, newStrength)}
-                  onRevisionUpdate={handleSurahRevisionUpdate}
-                />
-              ))
+              (sortedItems as number[]).map((surahNumber) => {
+                const surah = surahs.find(s => s.number === surahNumber)
+                if (!surah) return null
+                
+                return (
+                  <SurahCard
+                    key={surahNumber}
+                    surahNumber={surah.number}
+                    surahName={surah.name}
+                    juzNumber={surah.juz[0]}
+                    lastRevised={userProfile?.surahProgress[surah.number.toString()]?.lastRevised || null}
+                    strength={userProfile?.surahProgress[surah.number.toString()]?.strength || 'Medium'}
+                    revisionCycle={userProfile?.revisionCycle || 7}
+                    onStrengthChange={(newStrength) => handleSurahStrengthChange(surah.number, newStrength)}
+                    onRevisionUpdate={handleSurahRevisionUpdate}
+                  />
+                )
+              })
             ) : (
               (sortedItems as number[]).map((juzNumber) => {
                 const juz = juzData.find(j => j.number === juzNumber)

@@ -2,7 +2,7 @@
 
 import { useState } from 'react'
 import { motion } from 'framer-motion'
-import { BarChart3 } from 'lucide-react'
+import { BarChart3, Flame } from 'lucide-react'
 import PageRevisionStats from '../quran/PageRevisionStats'
 
 interface FlippableCardProps {
@@ -14,9 +14,13 @@ interface FlippableCardProps {
     totalItems: number
     viewMode: 'juz' | 'surah'
   }
+  streak: {
+    currentStreak: number
+    bestStreak: number
+  }
 }
 
-export default function FlippableCard({ userName, quote, stats }: FlippableCardProps) {
+export default function FlippableCard({ userName, quote, stats, streak }: FlippableCardProps) {
   const [isFlipped, setIsFlipped] = useState(false)
 
   return (
@@ -32,9 +36,22 @@ export default function FlippableCard({ userName, quote, stats }: FlippableCardP
         <div className={`w-full backface-hidden ${isFlipped ? 'invisible' : ''}`}>
           <div className="bg-surface rounded-lg p-4 sm:p-6 w-full">
             <div className="flex justify-between items-start gap-4">
-              <h1 className="text-2xl sm:text-3xl font-bold text-text flex-1">
-                Welcome back,<br className="sm:hidden" /> {userName}
-              </h1>
+              <div className="flex-1">
+                <h1 className="text-2xl sm:text-3xl font-bold text-text">
+                  Welcome back,<br className="sm:hidden" /> {userName}
+                </h1>
+                <div className="flex items-center gap-2 mt-2">
+                  <Flame className="w-5 h-5 text-orange-500" />
+                  <span className="text-lg font-semibold">
+                    {streak.currentStreak} day{streak.currentStreak !== 1 ? 's' : ''} streak
+                  </span>
+                  {streak.bestStreak > 0 && (
+                    <span className="text-sm text-text-secondary">
+                      (Best: {streak.bestStreak})
+                    </span>
+                  )}
+                </div>
+              </div>
               <button
                 onClick={() => setIsFlipped(true)}
                 className="p-2 rounded-full hover:bg-background/20 transition-colors shrink-0"
