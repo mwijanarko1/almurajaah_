@@ -13,101 +13,62 @@ export default function Navbar() {
   if (pathname === '/') return null
 
   return (
-    <nav className="bg-emerald-900/50 backdrop-blur-sm border-b border-emerald-800">
-      {/* Mobile Layout */}
-      <div className="md:hidden">
-        <div className="flex items-center justify-center px-4 py-3">
-          <Link href="/dashboard?view=juz" className="text-xl font-bold text-[#F5F5DC]">
+    <nav className="fixed top-0 left-0 right-0 bg-surface/80 backdrop-blur-md z-50 pt-8 sm:pt-0">
+      <div className="container mx-auto px-4 py-4">
+        <div className="flex items-center justify-between">
+          <Link href="/" className="text-2xl font-bold text-text">
             Al-Murajaah
           </Link>
-        </div>
-        {/* Fixed bottom navigation bar for mobile */}
-        <div className="fixed bottom-0 left-0 right-0 bg-emerald-900/50 backdrop-blur-sm border-t border-emerald-800">
-          <div className="flex justify-evenly items-center px-6 py-3">
-            <Link 
-              href="/dashboard?view=juz"
-              className="flex flex-col items-center text-[#F5F5DC]/80 hover:text-[#F5F5DC] w-16"
+
+          <div className="flex items-center gap-4">
+            <Link
+              href="/"
+              className={`flex items-center gap-2 px-3 py-2 rounded-lg transition-colors ${
+                pathname === '/' ? 'text-emerald-500' : 'text-text hover:text-emerald-500'
+              }`}
             >
-              <Home className="w-6 h-6 mb-1" />
-              <span className="text-xs text-center">Home</span>
+              <Home className="w-5 h-5" />
+              <span className="hidden sm:inline">Home</span>
             </Link>
 
-            <Link 
+            <Link
               href="/spaced-review"
-              className="flex flex-col items-center text-[#F5F5DC]/80 hover:text-[#F5F5DC] w-16"
+              className={`flex items-center gap-2 px-3 py-2 rounded-lg transition-colors ${
+                pathname === '/spaced-review' ? 'text-emerald-500' : 'text-text hover:text-emerald-500'
+              }`}
             >
-              <Clock className="w-6 h-6 mb-1" />
-              <span className="text-xs text-center">Spaced Review</span>
+              <Clock className="w-5 h-5" />
+              <span className="hidden sm:inline">Spaced Review</span>
             </Link>
 
-            <Link 
+            <Link
               href="/profile"
-              className="flex flex-col items-center text-[#F5F5DC]/80 hover:text-[#F5F5DC] w-16"
+              className={`flex items-center gap-2 px-3 py-2 rounded-lg transition-colors ${
+                pathname === '/profile' ? 'text-emerald-500' : 'text-text hover:text-emerald-500'
+              }`}
             >
-              <User className="w-6 h-6 mb-1" />
-              <span className="text-xs text-center">Profile</span>
+              <User className="w-5 h-5" />
+              <span className="hidden sm:inline">Profile</span>
             </Link>
 
-            <Link 
+            <Link
               href="/settings"
-              className="flex flex-col items-center text-[#F5F5DC]/80 hover:text-[#F5F5DC] w-16"
+              className={`flex items-center gap-2 px-3 py-2 rounded-lg transition-colors ${
+                pathname === '/settings' ? 'text-emerald-500' : 'text-text hover:text-emerald-500'
+              }`}
             >
-              <Settings className="w-6 h-6 mb-1" />
-              <span className="text-xs text-center">Settings</span>
+              <Settings className="w-5 h-5" />
+              <span className="hidden sm:inline">Settings</span>
             </Link>
 
             <button
               onClick={signOut}
-              className="flex flex-col items-center text-[#F5F5DC]/80 hover:text-[#F5F5DC] w-16"
+              className="flex items-center gap-2 px-3 py-2 rounded-lg text-text hover:text-emerald-500 transition-colors"
             >
-              <LogOut className="w-6 h-6 mb-1" />
-              <span className="text-xs text-center">Sign Out</span>
+              <LogOut className="w-5 h-5" />
+              <span className="hidden sm:inline">Sign Out</span>
             </button>
           </div>
-        </div>
-      </div>
-
-      {/* Tablet and Desktop Layout */}
-      <div className="hidden md:flex items-center justify-between px-6 py-4">
-        <Link href="/dashboard?view=juz" className="text-2xl font-bold text-[#F5F5DC]">
-          Al-Murajaah
-        </Link>
-        <div className="flex items-center gap-6">
-          <Link 
-            href="/dashboard?view=juz"
-            className="flex items-center gap-2 text-[#F5F5DC]/80 hover:text-[#F5F5DC]"
-          >
-            <Home className="w-5 h-5" />
-            <span>Home</span>
-          </Link>
-          <Link 
-            href="/spaced-review"
-            className="flex items-center gap-2 text-[#F5F5DC]/80 hover:text-[#F5F5DC]"
-          >
-            <Clock className="w-5 h-5" />
-            <span>Spaced Review</span>
-          </Link>
-          <Link 
-            href="/profile"
-            className="flex items-center gap-2 text-[#F5F5DC]/80 hover:text-[#F5F5DC]"
-          >
-            <User className="w-5 h-5" />
-            <span>Profile</span>
-          </Link>
-          <Link 
-            href="/settings"
-            className="flex items-center gap-2 text-[#F5F5DC]/80 hover:text-[#F5F5DC]"
-          >
-            <Settings className="w-5 h-5" />
-            <span>Settings</span>
-          </Link>
-          <button
-            onClick={signOut}
-            className="flex items-center gap-2 text-[#F5F5DC]/80 hover:text-[#F5F5DC]"
-          >
-            <LogOut className="w-5 h-5" />
-            <span>Sign Out</span>
-          </button>
         </div>
       </div>
     </nav>
