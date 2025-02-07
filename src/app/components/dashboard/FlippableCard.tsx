@@ -43,28 +43,29 @@ export default function FlippableCard({ userName, quote, stats }: FlippableCardP
               </button>
             </div>
             
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 mt-4">
-              <div className="bg-background/20 rounded-lg p-3">
-                <h3 className="text-green-400 text-base sm:text-lg font-semibold">Relax</h3>
-                <p className="text-xl sm:text-2xl font-bold text-text">
-                  {stats.relaxed} {stats.viewMode === 'juz' ? 'Juz' : 'Surahs'}
-                </p>
+            <div className="flex-1 flex flex-col">
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 mt-2">
+                <div className="bg-background/20 rounded-lg p-3">
+                  <h3 className="text-green-400 text-base sm:text-lg font-semibold">Relax</h3>
+                  <p className="text-xl sm:text-2xl font-bold text-text">
+                    {stats.relaxed} {stats.viewMode === 'juz' ? 'Juz' : 'Surahs'}
+                  </p>
+                </div>
+                <div className="bg-background/20 rounded-lg p-3">
+                  <h3 className="text-red-400 text-base sm:text-lg font-semibold">Need Revision</h3>
+                  <p className="text-xl sm:text-2xl font-bold text-text">
+                    {stats.needRevision} {stats.viewMode === 'juz' ? 'Juz' : 'Surahs'}
+                  </p>
+                </div>
+                <div className="bg-background/20 rounded-lg p-3">
+                  <h3 className="text-blue-400 text-base sm:text-lg font-semibold">Total Progress</h3>
+                  <p className="text-xl sm:text-2xl font-bold text-text">
+                    {stats.totalItems}/{stats.viewMode === 'juz' ? '30 Juz' : '114 Surahs'}
+                  </p>
+                </div>
               </div>
-              <div className="bg-background/20 rounded-lg p-3">
-                <h3 className="text-red-400 text-base sm:text-lg font-semibold">Need Revision</h3>
-                <p className="text-xl sm:text-2xl font-bold text-text">
-                  {stats.needRevision} {stats.viewMode === 'juz' ? 'Juz' : 'Surahs'}
-                </p>
-              </div>
-              <div className="bg-background/20 rounded-lg p-3">
-                <h3 className="text-blue-400 text-base sm:text-lg font-semibold">Total Progress</h3>
-                <p className="text-xl sm:text-2xl font-bold text-text">
-                  {stats.totalItems}/{stats.viewMode === 'juz' ? '30 Juz' : '114 Surahs'}
-                </p>
-              </div>
+              <p className="text-text-secondary text-center italic text-sm sm:text-base mt-2">{quote}</p>
             </div>
-
-            <p className="text-text-secondary text-center italic text-sm sm:text-base mt-4">{quote}</p>
           </div>
         </div>
 
