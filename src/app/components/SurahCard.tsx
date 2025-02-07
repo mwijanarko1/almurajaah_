@@ -1,16 +1,17 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { doc, updateDoc } from 'firebase/firestore'
+import { doc, updateDoc, arrayUnion, increment } from 'firebase/firestore'
 import { db } from '@/app/lib/firebase/firebase'
 import { useAuthContext } from '@/app/lib/contexts/AuthContext'
+import { surahPages } from '@/app/lib/data/surahPages'
 
 interface SurahProgress {
   lastRevised: string | null
   strength: 'Weak' | 'Medium' | 'Strong'
 }
 
-interface SurahCardProps {
+export interface SurahCardProps {
   surahNumber: number
   surahName: string
   juzNumber: number
@@ -101,9 +102,20 @@ export default function SurahCard({
     const today = new Date().toISOString()
 
     try {
+      // Get the number of pages for this surah
+      const surahInfo = surahPages.find(s => s.number === surahNumber)
+      if (!surahInfo) throw new Error('Surah info not found')
+
+      // Update the surah progress
       await updateDoc(doc(db, 'userProfiles', user.uid), {
-        [`surahProgress.${surahNumber}.lastRevised`]: today
+        [`surahProgress.${surahNumber}.lastRevised`]: today,
+        // Update page revision stats
+        'pageRevisionStats.lastRevisedPages': arrayUnion(...Array.from({ length: Math.ceil(surahInfo.pages) }, (_, i) => i + 1)),
+        'pageRevisionStats.totalPagesRevised': increment(Math.ceil(surahInfo.pages)),
+        'pageRevisionStats.pagesRevisedToday': increment(Math.ceil(surahInfo.pages)),
+        [`pageRevisionStats.lastRevisionDates.${surahNumber}`]: today
       })
+      
       onRevisionUpdate(surahNumber, today)
     } catch (error) {
       console.error('Error updating revision:', error)

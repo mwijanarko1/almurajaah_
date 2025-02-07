@@ -1,11 +1,14 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { doc, updateDoc } from 'firebase/firestore'
+import { doc, updateDoc, arrayUnion, increment } from 'firebase/firestore'
 import { db } from '@/app/lib/firebase/firebase'
 import { useAuthContext } from '@/app/lib/contexts/AuthContext'
 import { ChevronRight } from 'lucide-react'
 import Link from 'next/link'
+import { surahPages } from '@/app/lib/data/surahPages'
+import { juzData, type Surah } from '@/app/lib/data/quranData'
+import type { SurahPageInfo } from '@/app/lib/types/quran'
 
 export interface SelectedSurah {
   number: number
@@ -92,9 +95,30 @@ export default function JuzCard({
     const today = new Date().toISOString()
 
     try {
+      // Get all surahs in this juz
+      const currentJuz = juzData.find(juz => juz.number === juzNumber)
+      if (!currentJuz) throw new Error('Juz not found')
+      
+      // Calculate total pages in this juz from memorized surahs
+      const memorizedSurahsInJuz = currentJuz.surahs.filter(surah => 
+        memorizedSurahs.some(ms => ms.number === surah.number)
+      )
+      
+      const totalPages = memorizedSurahsInJuz.reduce((total: number, surah: Surah) => {
+        const surahInfo = surahPages.find(s => s.number === surah.number)
+        return total + (surahInfo?.pages || 0)
+      }, 0)
+
+      // Update the juz progress and page stats
       await updateDoc(doc(db, 'userProfiles', user.uid), {
-        [`juzProgress.${juzNumber}.lastRevised`]: today
+        [`juzProgress.${juzNumber}.lastRevised`]: today,
+        // Update page revision stats
+        'pageRevisionStats.lastRevisedPages': arrayUnion(...Array.from({ length: Math.ceil(totalPages) }, (_, i) => i + 1)),
+        'pageRevisionStats.totalPagesRevised': increment(Math.ceil(totalPages)),
+        'pageRevisionStats.pagesRevisedToday': increment(Math.ceil(totalPages)),
+        [`pageRevisionStats.lastRevisionDates.${juzNumber}`]: today
       })
+      
       onRevisionUpdate(juzNumber, today)
     } catch (error) {
       console.error('Error updating revision:', error)

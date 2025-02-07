@@ -15,6 +15,8 @@ import PageLayout from '@/app/components/ui/PageLayout'
 import { motion } from 'framer-motion'
 import SpacedRepetition from '@/app/components/quran/SpacedRepetition'
 import type { SelectedSurah } from '@/app/components/JuzCard'
+import PageRevisionStats from '@/app/components/quran/PageRevisionStats'
+import FlippableCard from '@/app/components/dashboard/FlippableCard'
 
 interface JuzProgress {
   lastRevised: string | null
@@ -475,35 +477,17 @@ export default function Dashboard() {
           transition={{ duration: 0.5 }}
           className="space-y-8"
         >
-          {/* Summary Header */}
-          <div className="bg-surface rounded-lg p-6 mb-8">
-            <h1 className="text-3xl font-bold text-text mb-4">
-              Welcome back, {user?.displayName}
-            </h1>
-            
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
-              <div className="bg-background/20 rounded-lg p-4">
-                <h3 className="text-green-400 text-lg font-semibold">Relax</h3>
-                <p className="text-2xl font-bold text-text">{stats.relaxed} {viewMode === 'juz' ? 'Juz' : 'Surahs'}</p>
-              </div>
-              <div className="bg-background/20 rounded-lg p-4">
-                <h3 className="text-red-400 text-lg font-semibold">Need Revision</h3>
-                <p className="text-2xl font-bold text-text">{stats.needRevision} {viewMode === 'juz' ? 'Juz' : 'Surahs'}</p>
-              </div>
-              <div className="bg-background/20 rounded-lg p-4">
-                <h3 className="text-blue-400 text-lg font-semibold">Total Progress</h3>
-                <p className="text-2xl font-bold text-text">
-                  {viewMode === 'juz' ? (
-                    `${items.length}/30 Juz`
-                  ) : (
-                    `${userProfile.memorizedSurahs.length}/114 Surahs`
-                  )}
-                </p>
-              </div>
-            </div>
-
-            <p className="text-text-secondary text-center italic">{quote}</p>
-          </div>
+          {/* Flippable Summary Card */}
+          <FlippableCard 
+            userName={user?.displayName || null}
+            quote={quote}
+            stats={{
+              relaxed: stats.relaxed,
+              needRevision: stats.needRevision,
+              totalItems: viewMode === 'juz' ? items.length : userProfile.memorizedSurahs.length,
+              viewMode
+            }}
+          />
 
           {/* View and Sort Controls */}
           <div className="mb-6 flex justify-between items-center">
