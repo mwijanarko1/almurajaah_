@@ -2,12 +2,13 @@
 
 import { useState, useEffect } from 'react'
 import { useAuthContext } from '@/app/lib/contexts/AuthContext'
-import { doc, getDoc, setDoc, updateDoc } from 'firebase/firestore'
+import { doc, getDoc, setDoc, updateDoc, arrayUnion, increment } from 'firebase/firestore'
 import { db } from '@/app/lib/firebase/firebase'
 import { ReviewQuality, SpacedRepetitionState } from '@/app/lib/spaced-repetition/types'
 import { motion } from 'framer-motion'
 import { Info, X } from 'lucide-react'
 import { surahs } from '@/app/lib/data/surahs'
+import { surahPages } from '@/app/lib/data/surahPages'
 
 const INTERVALS = {
   AGAIN: {
@@ -75,7 +76,26 @@ function InfoModal({ isOpen, onClose }: { isOpen: boolean; onClose: () => void }
   )
 }
 
-export default function SpacedRepetition() {
+interface SpacedRepetitionProps {
+  userProfile: {
+    memorizedSurahs: { number: number }[]
+    surahProgress: { [key: string]: { lastRevised: string | null; strength: string } }
+    juzProgress: { [key: string]: { lastRevised: string | null; strength: string } }
+    revisionCycle: number
+  }
+  onJuzRevisionUpdate: (juzNumber: number, date: string) => Promise<void>
+  onSurahRevisionUpdate: (surahNumber: number, date: string) => Promise<void>
+  onJuzStrengthChange: (juzNumber: number, newStrength: 'Weak' | 'Medium' | 'Strong') => Promise<void>
+  onSurahStrengthChange: (surahNumber: number, newStrength: 'Weak' | 'Medium' | 'Strong') => Promise<void>
+}
+
+export default function SpacedRepetition({
+  userProfile,
+  onJuzRevisionUpdate,
+  onSurahRevisionUpdate,
+  onJuzStrengthChange,
+  onSurahStrengthChange
+}: SpacedRepetitionProps) {
   const { user } = useAuthContext()
   const [dueCards, setDueCards] = useState<number[]>([])
   const [currentCard, setCurrentCard] = useState<number | null>(null)
@@ -89,55 +109,44 @@ export default function SpacedRepetition() {
   useEffect(() => {
     if (!user) return
 
-    const fetchDueCards = async (attempt = 1) => {
-      try {
-        setError(null)
-        const userDoc = await getDoc(doc(db, 'userProfiles', user.uid))
-        if (!userDoc.exists()) return
+    const now = new Date()
+    const dueCards: number[] = []
 
-        const userProfile = userDoc.data()
-        const now = new Date()
-        const dueCards: number[] = []
-
-        userProfile.memorizedSurahs.forEach((surah: { number: number }) => {
-          const surahProgress = userProfile.surahProgress[surah.number.toString()]
-          
-          if (!surahProgress?.lastRevised) {
-            dueCards.push(surah.number)
-            return
-          }
-
-          const lastRevised = new Date(surahProgress.lastRevised)
-          const diffTime = Math.abs(now.getTime() - lastRevised.getTime())
-          const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24))
-          
-          if (diffDays >= (userProfile.revisionCycle || 7)) {
-            dueCards.push(surah.number)
-          }
-        })
-
-        // Sort cards numerically
-        const sortedDueCards = dueCards.sort((a, b) => a - b)
-        setDueCards(sortedDueCards)
-        if (sortedDueCards.length > 0) {
-          setCurrentCard(sortedDueCards[0])
-        }
-        setLoading(false)
-      } catch (error) {
-        console.error('Error fetching due cards:', error)
-        if (attempt < MAX_RETRIES) {
-          // Exponential backoff
-          const delay = Math.min(1000 * Math.pow(2, attempt - 1), 10000)
-          setTimeout(() => fetchDueCards(attempt + 1), delay)
-        } else {
-          setError('Failed to load your revision cards. Please check your internet connection and try again.')
-          setLoading(false)
-        }
-      }
+    // Helper function to check if a surah needs revision
+    const needsRevision = (surahNumber: number) => {
+      const progress = userProfile.surahProgress[surahNumber.toString()]
+      
+      // If there's no progress entry at all, it needs revision
+      if (!progress) return true
+      
+      // If it has never been revised, it needs revision
+      if (!progress.lastRevised) return true
+      
+      // Check if it's past the revision cycle
+      const lastRevised = new Date(progress.lastRevised)
+      const now = new Date()
+      const diffTime = Math.abs(now.getTime() - lastRevised.getTime())
+      const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24))
+      
+      // Only include surahs that need revision right now (past the revision cycle)
+      return diffDays > userProfile.revisionCycle
     }
 
-    fetchDueCards()
-  }, [user])
+    userProfile.memorizedSurahs.forEach((surah: { number: number }) => {
+      // Add to due cards if it needs revision
+      if (needsRevision(surah.number)) {
+        dueCards.push(surah.number)
+      }
+    })
+
+    // Sort cards numerically
+    const sortedDueCards = dueCards.sort((a, b) => a - b)
+    setDueCards(sortedDueCards)
+    if (sortedDueCards.length > 0) {
+      setCurrentCard(sortedDueCards[0])
+    }
+    setLoading(false)
+  }, [user, userProfile])
 
   const getNextCard = (currentCard: number, remainingCards: number[]) => {
     // Find the next surah number that's greater than the current one
@@ -152,100 +161,92 @@ export default function SpacedRepetition() {
     setIsChanging(true)
     setError(null)
 
-    const updateWithRetry = async (attempt = 1) => {
-      try {
-        const userProfileRef = doc(db, 'userProfiles', user.uid)
-        const userProfileSnap = await getDoc(userProfileRef)
-        const userProfile = userProfileSnap.data()
+    try {
+      const now = new Date()
+      let lastRevisedDate: Date
+      let newDueCards: number[]
 
-        if (userProfile) {
-          const now = new Date()
-          let lastRevisedDate: Date
+      // Get the number of pages for this surah
+      const surahInfo = surahPages.find(s => s.number === currentCard)
+      if (!surahInfo) throw new Error('Surah info not found')
 
-          if (quality === 1) { // Needs Revision
-            lastRevisedDate = new Date(now.getTime() - (userProfile.revisionCycle + 1) * 24 * 60 * 60 * 1000)
-          } else if (quality === 2) { // Hard - Show up in 1 day
-            lastRevisedDate = new Date(now.getTime() - (userProfile.revisionCycle - 1) * 24 * 60 * 60 * 1000)
-          } else if (quality === 3) { // Medium - Show up in 3 days
-            lastRevisedDate = new Date(now.getTime() - (userProfile.revisionCycle - 3) * 24 * 60 * 60 * 1000)
-          } else { // Easy - Reset to show up after revisionCycle days
-            lastRevisedDate = now
-          }
-
-          const updatedSurahProgress = {
-            ...userProfile.surahProgress,
-            [currentCard.toString()]: {
-              ...userProfile.surahProgress[currentCard.toString()],
-              lastRevised: lastRevisedDate.toISOString()
-            }
-          }
-
-          // Check if all surahs in any juz are revised
-          const updatedJuzProgress = { ...userProfile.juzProgress }
-          const juzData = surahs.find(s => s.number === currentCard)?.juz
-          
-          if (juzData) {
-            const juzNumbers = Array.isArray(juzData) ? juzData : [juzData]
-            
-            juzNumbers.forEach(juzNumber => {
-              const surahsInJuz = surahs.filter(s => {
-                const surahJuz = Array.isArray(s.juz) ? s.juz : [s.juz]
-                return surahJuz.includes(juzNumber)
-              })
-
-              const memorizedSurahsInJuz = surahsInJuz.filter(s => 
-                userProfile.memorizedSurahs.some((ms: { number: number }) => ms.number === s.number)
-              )
-
-              // Check if all memorized surahs in this juz are recently revised
-              const allSurahsRevised = memorizedSurahsInJuz.every(s => {
-                const surahProgress = updatedSurahProgress[s.number.toString()]
-                if (!surahProgress?.lastRevised) return false
-                
-                const lastRevised = new Date(surahProgress.lastRevised)
-                const diffTime = Math.abs(now.getTime() - lastRevised.getTime())
-                const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24))
-                
-                return diffDays < (userProfile.revisionCycle || 7)
-              })
-
-              if (allSurahsRevised && memorizedSurahsInJuz.length > 0) {
-                updatedJuzProgress[juzNumber.toString()] = {
-                  ...updatedJuzProgress[juzNumber.toString()],
-                  lastRevised: now.toISOString()
-                }
-              }
-            })
-          }
-
-          await updateDoc(userProfileRef, {
-            surahProgress: updatedSurahProgress,
-            juzProgress: updatedJuzProgress
-          })
-
-          const remainingDue = dueCards.filter(num => num !== currentCard)
-          const nextCard = getNextCard(currentCard, remainingDue)
-          
-          setTimeout(() => {
-            setDueCards(remainingDue)
-            setCurrentCard(nextCard)
-            setIsChanging(false)
-            setError(null)
-          }, 300) // Match the animation duration
+      if (quality === 1) { // Needs Revision
+        // Set to revision cycle + 1 day ago
+        lastRevisedDate = new Date(now.getTime() - ((userProfile.revisionCycle + 1) * 24 * 60 * 60 * 1000))
+        // Move current card to the end of the deck
+        newDueCards = [...dueCards.filter(num => num !== currentCard), currentCard]
+      } else {
+        if (quality === 2) { // Hard
+          // Set to revision cycle - 1 day ago
+          lastRevisedDate = new Date(now.getTime() - ((userProfile.revisionCycle - 1) * 24 * 60 * 60 * 1000))
+        } else if (quality === 3) { // Medium
+          // Set to revision cycle - 3 days ago
+          lastRevisedDate = new Date(now.getTime() - ((userProfile.revisionCycle - 3) * 24 * 60 * 60 * 1000))
+        } else { // Easy
+          // Set to current date
+          lastRevisedDate = now
         }
-      } catch (error) {
-        console.error('Error updating ratings:', error)
-        if (attempt < MAX_RETRIES) {
-          const delay = Math.min(1000 * Math.pow(2, attempt - 1), 10000)
-          setTimeout(() => updateWithRetry(attempt + 1), delay)
-        } else {
-          setError('Failed to save your rating. Your progress will be saved when you reconnect.')
-          setIsChanging(false)
+        // Remove current card from deck
+        newDueCards = dueCards.filter(num => num !== currentCard)
+      }
+
+      // Update the state to show next card
+      const nextCard = quality === 1 ? newDueCards[0] : getNextCard(currentCard, newDueCards)
+      setDueCards(newDueCards)
+      setCurrentCard(nextCard)
+
+      // Update surah revision date and page stats in Firestore
+      await updateDoc(doc(db, 'userProfiles', user.uid), {
+        [`surahProgress.${currentCard}.lastRevised`]: lastRevisedDate.toISOString(),
+        // Update page revision stats
+        'pageRevisionStats.lastRevisedPages': arrayUnion(...Array.from({ length: Math.ceil(surahInfo.pages) }, (_, i) => i + 1)),
+        'pageRevisionStats.totalPagesRevised': increment(Math.ceil(surahInfo.pages)),
+        'pageRevisionStats.pagesRevisedToday': increment(Math.ceil(surahInfo.pages)),
+        [`pageRevisionStats.lastRevisionDates.${currentCard}`]: lastRevisedDate.toISOString()
+      })
+
+      // Update surah state in parent component
+      await onSurahRevisionUpdate(currentCard, lastRevisedDate.toISOString())
+
+      // Update juz revision date if needed
+      const juzData = surahs.find(s => s.number === currentCard)?.juz
+      if (juzData) {
+        const juzNumbers = Array.isArray(juzData) ? juzData : [juzData]
+        for (const juzNumber of juzNumbers) {
+          // Check if all surahs in this juz have been revised
+          const surahsInJuz = surahs.filter(s => s.juz.includes(juzNumber))
+          const memorizedSurahsInJuz = surahsInJuz.filter(s => 
+            userProfile.memorizedSurahs.some(ms => ms.number === s.number)
+          )
+          
+          const allSurahsRevised = memorizedSurahsInJuz.every(s => {
+            const progress = userProfile.surahProgress[s.number.toString()]
+            if (!progress?.lastRevised) return false
+            
+            const lastRevised = new Date(progress.lastRevised)
+            const diffTime = Math.abs(now.getTime() - lastRevised.getTime())
+            const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24))
+            return diffDays < (userProfile.revisionCycle || 7)
+          })
+          
+          // Only update juz revision date if all its surahs are revised
+          if (allSurahsRevised && memorizedSurahsInJuz.length > 0) {
+            // Update juz state in parent component
+            await onJuzRevisionUpdate(juzNumber, lastRevisedDate.toISOString())
+          }
         }
       }
-    }
 
-    updateWithRetry()
+      setIsChanging(false)
+      setError(null)
+    } catch (error) {
+      console.error('Error updating ratings:', error)
+      setError('Failed to save your rating. Please try again.')
+      setIsChanging(false)
+      // Revert the state changes if there was an error
+      setDueCards([...dueCards])
+      setCurrentCard(currentCard)
+    }
   }
 
   if (loading) {
