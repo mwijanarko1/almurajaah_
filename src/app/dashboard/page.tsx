@@ -9,7 +9,7 @@ import JuzCard from '@/app/components/JuzCard'
 import SurahCard from '@/app/components/SurahCard'
 import Navbar from '@/app/components/Navbar'
 import { surahs } from '@/app/lib/data/surahs'
-import { LayoutGrid, List } from 'lucide-react'
+import { LayoutGrid, List, Clock } from 'lucide-react'
 import { juzData } from '@/app/lib/data/quranData'
 import PageLayout from '@/app/components/ui/PageLayout'
 import { motion } from 'framer-motion'
@@ -17,6 +17,10 @@ import SpacedRepetition from '@/app/components/quran/SpacedRepetition'
 import type { SelectedSurah } from '@/app/components/JuzCard'
 import PageRevisionStats from '@/app/components/quran/PageRevisionStats'
 import FlippableCard from '@/app/components/dashboard/FlippableCard'
+import Link from 'next/link'
+
+type ViewMode = 'juz' | 'surah' | 'spaced'
+type SortOption = 'number' | 'lastRevised' | 'strength'
 
 interface JuzProgress {
   lastRevised: string | null
@@ -40,9 +44,6 @@ interface UserProfile {
     bestStreak: number
   }
 }
-
-type SortOption = 'number' | 'lastRevised' | 'strength'
-type ViewMode = 'juz' | 'surah'
 
 const MOTIVATIONAL_QUOTES = [
   "The Prophet ﷺ said:\n\n\"Be diligent in maintaining your connection with this Qur'an, for by the One in Whose hand is the soul of Muhammad, it escapes more easily than a camel from its tether.\""
@@ -157,17 +158,6 @@ export default function Dashboard() {
     setIsLoading(true)
 
     try {
-      // Update all surahs in this juz
-      const surahsInJuz = getSurahsInJuz(juzNumber)
-      const updatedSurahProgress = { ...userProfile.surahProgress }
-      
-      surahsInJuz.forEach(surah => {
-        updatedSurahProgress[surah.number.toString()] = {
-          ...updatedSurahProgress[surah.number.toString()] || { strength: 'Medium' },
-          lastRevised: date
-        }
-      })
-
       const updatedJuzProgress = {
         ...userProfile.juzProgress,
         [juzNumber.toString()]: {
@@ -178,13 +168,11 @@ export default function Dashboard() {
 
       await updateDoc(doc(db, 'userProfiles', user!.uid), {
         juzProgress: updatedJuzProgress,
-        surahProgress: updatedSurahProgress
       })
 
       setUserProfile({
         ...userProfile,
         juzProgress: updatedJuzProgress,
-        surahProgress: updatedSurahProgress
       })
     } catch (error) {
       console.error('Error updating juz revision:', error)
@@ -215,10 +203,17 @@ export default function Dashboard() {
       const updatedJuzProgress = { ...userProfile.juzProgress }
       
       surah.juz.forEach(juzNum => {
-        if (!userProfile.memorizedJuz.includes(juzNum)) return
+        // Get all surahs in this juz that are memorized
+        const surahsInJuz = getSurahsInJuz(juzNum)
+        const memorizedSurahsInJuz = surahsInJuz.filter(s => 
+          userProfile.memorizedSurahs.some(ms => ms.number === s.number)
+        )
+        
+        // Skip if no surahs are memorized in this juz
+        if (memorizedSurahsInJuz.length === 0) return
 
-        const allSurahsInJuz = getSurahsInJuz(juzNum)
-        const allSurahsRevised = allSurahsInJuz.every(s => {
+        // Check if all memorized surahs in this juz are revised
+        const allSurahsRevised = memorizedSurahsInJuz.every(s => {
           const surahProgress = updatedSurahProgress[s.number.toString()]
           if (!surahProgress?.lastRevised) return false
           
@@ -229,9 +224,9 @@ export default function Dashboard() {
           return lastRevisionDate >= cycleStartDate
         })
 
-        if (allSurahsRevised) {
+        if (allSurahsRevised && memorizedSurahsInJuz.length > 0) {
           // Find the most recent revision date among all surahs
-          const mostRecentDate = allSurahsInJuz
+          const mostRecentDate = memorizedSurahsInJuz
             .map(s => new Date(updatedSurahProgress[s.number.toString()].lastRevised!))
             .reduce((latest, current) => current > latest ? current : latest)
             .toISOString()
@@ -363,13 +358,16 @@ export default function Dashboard() {
     const today = new Date()
     const diffTime = Math.abs(today.getTime() - lastDate.getTime())
     const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24))
-    return diffDays >= (userProfile.revisionCycle || 7) // Default to 7 days if revisionCycle not set
+    // Only count as needing revision if it's strictly past the revision cycle
+    return diffDays > (userProfile.revisionCycle || 7)
   }
 
   const items = useMemo(() => {
     if (!userProfile) return []
 
-    if (viewMode === 'juz') {
+    if (viewMode === 'spaced') {
+      return [] // SpacedRepetition component handles its own items
+    } else if (viewMode === 'juz') {
       // Show Juz that are either directly selected or have at least one Surah selected
       return Array.from({ length: 30 }, (_, i) => i + 1).filter(juzNum => {
         const isDirectlySelected = userProfile.memorizedJuz.includes(juzNum)
@@ -392,6 +390,10 @@ export default function Dashboard() {
 
   const sortedItems = useMemo(() => {
     if (!items || !userProfile) return []
+
+    if (viewMode === 'spaced') {
+      return [] // SpacedRepetition component handles its own items
+    }
 
     return [...items].sort((a, b) => {
       if (viewMode === 'juz') {
@@ -454,7 +456,15 @@ export default function Dashboard() {
   const getRevisionStats = () => {
     if (!userProfile) return { needRevision: 0, relaxed: 0 }
     
-    if (viewMode === 'juz') {
+    if (viewMode === 'spaced') {
+      // For spaced view, we'll count all items that need revision
+      const needRevision = userProfile.memorizedSurahs.filter(surah => {
+        const progress = userProfile.surahProgress[surah.number.toString()]
+        return needsRevision(progress)
+      }).length
+      const total = userProfile.memorizedSurahs.length
+      return { needRevision, relaxed: total - needRevision }
+    } else if (viewMode === 'juz') {
       // Only count Juz that are either directly selected or have all their Surahs selected
       return Array.from({ length: 30 }, (_, i) => i + 1)
         .filter(juzNum => {
@@ -545,7 +555,7 @@ export default function Dashboard() {
                 className={`flex items-center gap-2 px-3 sm:px-4 py-2 rounded-lg text-sm sm:text-base ${
                   viewMode === 'juz'
                     ? 'bg-emerald-600 text-white'
-                    : 'bg-emerald-100 text-emerald-800'
+                    : 'bg-emerald-100 text-emerald-800 hover:bg-emerald-200'
                 }`}
               >
                 <LayoutGrid className="w-4 h-4 sm:w-5 sm:h-5" />
@@ -556,11 +566,22 @@ export default function Dashboard() {
                 className={`flex items-center gap-2 px-3 sm:px-4 py-2 rounded-lg text-sm sm:text-base ${
                   viewMode === 'surah'
                     ? 'bg-emerald-600 text-white'
-                    : 'bg-emerald-100 text-emerald-800'
+                    : 'bg-emerald-100 text-emerald-800 hover:bg-emerald-200'
                 }`}
               >
                 <List className="w-4 h-4 sm:w-5 sm:h-5" />
                 <span>Surah View</span>
+              </button>
+              <button
+                onClick={() => setViewMode('spaced')}
+                className={`flex items-center gap-2 px-3 sm:px-4 py-2 rounded-lg text-sm sm:text-base ${
+                  viewMode === 'spaced'
+                    ? 'bg-emerald-600 text-white'
+                    : 'bg-emerald-100 text-emerald-800 hover:bg-emerald-200'
+                }`}
+              >
+                <Clock className="w-4 h-4 sm:w-5 sm:h-5" />
+                <span>Spaced Review</span>
               </button>
             </div>
             
@@ -575,7 +596,7 @@ export default function Dashboard() {
             </button>
           </div>
 
-          <select
+          {viewMode !== 'spaced' && <select
             value={sortBy}
             onChange={(e) => setSortBy(e.target.value as SortOption)}
             className="w-full sm:w-auto bg-surface text-text px-3 sm:px-4 py-2 rounded-lg border border-background/10 text-sm sm:text-base"
@@ -583,11 +604,21 @@ export default function Dashboard() {
             <option value="number">Sort by Number</option>
             <option value="lastRevised">Sort by Last Revised</option>
             <option value="strength">Sort by Strength</option>
-          </select>
+          </select>}
 
           {/* Items Grid */}
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
-            {viewMode === 'surah' ? (
+            {viewMode === 'spaced' ? (
+              <div className="col-span-full">
+                <SpacedRepetition
+                  userProfile={userProfile}
+                  onJuzRevisionUpdate={handleJuzRevisionUpdate}
+                  onSurahRevisionUpdate={handleSurahRevisionUpdate}
+                  onJuzStrengthChange={handleJuzStrengthChange}
+                  onSurahStrengthChange={handleSurahStrengthChange}
+                />
+              </div>
+            ) : viewMode === 'surah' ? (
               (sortedItems as number[]).map((surahNumber) => {
                 const surah = surahs.find(s => s.number === surahNumber)
                 if (!surah) return null

@@ -33,14 +33,6 @@ export default function Navbar() {
             </Link>
 
             <Link
-              href="/spaced-review"
-              className="flex flex-col items-center text-[#F5F5DC]/80 hover:text-[#F5F5DC] w-16"
-            >
-              <Clock className="w-6 h-6 mb-1" />
-              <span className="text-xs text-center">Spaced Review</span>
-            </Link>
-
-            <Link
               href="/profile"
               className="flex flex-col items-center text-[#F5F5DC]/80 hover:text-[#F5F5DC] w-16"
             >
@@ -79,13 +71,6 @@ export default function Navbar() {
           >
             <Home className="w-5 h-5" />
             <span>Home</span>
-          </Link>
-          <Link 
-            href="/spaced-review"
-            className="flex items-center gap-2 text-[#F5F5DC]/80 hover:text-[#F5F5DC]"
-          >
-            <Clock className="w-5 h-5" />
-            <span>Spaced Review</span>
           </Link>
           <Link 
             href="/profile"

@@ -12,7 +12,7 @@ interface FlippableCardProps {
     relaxed: number
     needRevision: number
     totalItems: number
-    viewMode: 'juz' | 'surah'
+    viewMode: 'juz' | 'surah' | 'spaced'
   }
   streak: {
     currentStreak: number
@@ -22,6 +22,28 @@ interface FlippableCardProps {
 
 export default function FlippableCard({ userName, quote, stats, streak }: FlippableCardProps) {
   const [isFlipped, setIsFlipped] = useState(false)
+
+  const getItemLabel = (count: number) => {
+    switch (stats.viewMode) {
+      case 'juz':
+        return `Juz${count !== 1 ? '' : ''}`
+      case 'surah':
+        return `Surah${count !== 1 ? 's' : ''}`
+      case 'spaced':
+        return `Surah${count !== 1 ? 's' : ''}`
+    }
+  }
+
+  const getTotalLabel = () => {
+    switch (stats.viewMode) {
+      case 'juz':
+        return '30 Juz'
+      case 'surah':
+        return '114 Surahs'
+      case 'spaced':
+        return `${stats.totalItems} Surahs`
+    }
+  }
 
   return (
     <div className="w-full perspective-1000">
@@ -66,19 +88,19 @@ export default function FlippableCard({ userName, quote, stats, streak }: Flippa
                 <div className="bg-background/20 rounded-lg p-3">
                   <h3 className="text-green-400 text-base sm:text-lg font-semibold">Relax</h3>
                   <p className="text-xl sm:text-2xl font-bold text-text">
-                    {stats.relaxed} {stats.viewMode === 'juz' ? 'Juz' : 'Surahs'}
+                    {stats.relaxed} {getItemLabel(stats.relaxed)}
                   </p>
                 </div>
                 <div className="bg-background/20 rounded-lg p-3">
                   <h3 className="text-red-400 text-base sm:text-lg font-semibold">Need Revision</h3>
                   <p className="text-xl sm:text-2xl font-bold text-text">
-                    {stats.needRevision} {stats.viewMode === 'juz' ? 'Juz' : 'Surahs'}
+                    {stats.needRevision} {getItemLabel(stats.needRevision)}
                   </p>
                 </div>
                 <div className="bg-background/20 rounded-lg p-3">
                   <h3 className="text-blue-400 text-base sm:text-lg font-semibold">Total Progress</h3>
                   <p className="text-xl sm:text-2xl font-bold text-text">
-                    {stats.totalItems}/{stats.viewMode === 'juz' ? '30 Juz' : '114 Surahs'}
+                    {stats.totalItems}/{getTotalLabel()}
                   </p>
                 </div>
               </div>

@@ -7,7 +7,6 @@ import SpacedRepetition from '@/app/components/quran/SpacedRepetition'
 import PageLayout from '@/app/components/ui/PageLayout'
 import { doc, getDoc, updateDoc } from 'firebase/firestore'
 import { db } from '@/app/lib/firebase/firebase'
-import { surahs } from '@/app/lib/data/surahs'
 
 interface UserProfile {
   memorizedSurahs: { number: number }[]
@@ -82,52 +81,13 @@ export default function SpacedReviewPage() {
         }
       }
 
-      const surah = surahs.find(s => s.number === surahNumber)
-      if (!surah) return
-
-      const updatedJuzProgress = { ...userProfile.juzProgress }
-      
-      surah.juz.forEach(juzNum => {
-        const surahsInJuz = surahs.filter(s => s.juz.includes(juzNum))
-        const memorizedSurahsInJuz = surahsInJuz.filter(s => 
-          userProfile.memorizedSurahs.some(ms => ms.number === s.number)
-        )
-        
-        if (memorizedSurahsInJuz.length === 0) return
-
-        const allSurahsRevised = memorizedSurahsInJuz.every(s => {
-          const surahProgress = updatedSurahProgress[s.number.toString()]
-          if (!surahProgress?.lastRevised) return false
-          
-          const lastRevisionDate = new Date(surahProgress.lastRevised)
-          const cycleStartDate = new Date()
-          cycleStartDate.setDate(cycleStartDate.getDate() - userProfile.revisionCycle)
-          
-          return lastRevisionDate >= cycleStartDate
-        })
-
-        if (allSurahsRevised && memorizedSurahsInJuz.length > 0) {
-          const mostRecentDate = memorizedSurahsInJuz
-            .map(s => new Date(updatedSurahProgress[s.number.toString()].lastRevised!))
-            .reduce((latest, current) => current > latest ? current : latest)
-            .toISOString()
-
-          updatedJuzProgress[juzNum.toString()] = {
-            ...updatedJuzProgress[juzNum.toString()],
-            lastRevised: mostRecentDate
-          }
-        }
-      })
-
       await updateDoc(doc(db, 'userProfiles', user.uid), {
         surahProgress: updatedSurahProgress,
-        juzProgress: updatedJuzProgress
       })
 
       setUserProfile({
         ...userProfile,
         surahProgress: updatedSurahProgress,
-        juzProgress: updatedJuzProgress
       })
     } catch (error) {
       console.error('Error updating surah revision:', error)
@@ -138,16 +98,6 @@ export default function SpacedReviewPage() {
     if (!user || !userProfile) return
 
     try {
-      const surahsInJuz = surahs.filter(surah => surah.juz.includes(juzNumber))
-      const updatedSurahProgress = { ...userProfile.surahProgress }
-      
-      surahsInJuz.forEach(surah => {
-        updatedSurahProgress[surah.number.toString()] = {
-          ...updatedSurahProgress[surah.number.toString()] || { lastRevised: null },
-          strength: newStrength
-        }
-      })
-
       const updatedJuzProgress = {
         ...userProfile.juzProgress,
         [juzNumber.toString()]: {
@@ -158,13 +108,11 @@ export default function SpacedReviewPage() {
 
       await updateDoc(doc(db, 'userProfiles', user.uid), {
         juzProgress: updatedJuzProgress,
-        surahProgress: updatedSurahProgress
       })
 
       setUserProfile({
         ...userProfile,
         juzProgress: updatedJuzProgress,
-        surahProgress: updatedSurahProgress
       })
     } catch (error) {
       console.error('Error updating juz strength:', error)
@@ -183,41 +131,20 @@ export default function SpacedReviewPage() {
         }
       }
 
-      const surah = surahs.find(s => s.number === surahNumber)
-      if (!surah) return
-
-      const updatedJuzProgress = { ...userProfile.juzProgress }
-      
-      surah.juz.forEach(juzNum => {
-        const allSurahsInJuz = surahs.filter(s => s.juz.includes(juzNum))
-        const allSurahsSameStrength = allSurahsInJuz.every(s => 
-          updatedSurahProgress[s.number.toString()]?.strength === newStrength
-        )
-
-        if (allSurahsSameStrength) {
-          updatedJuzProgress[juzNum.toString()] = {
-            ...updatedJuzProgress[juzNum.toString()],
-            strength: newStrength
-          }
-        }
-      })
-
       await updateDoc(doc(db, 'userProfiles', user.uid), {
         surahProgress: updatedSurahProgress,
-        juzProgress: updatedJuzProgress
       })
 
       setUserProfile({
         ...userProfile,
         surahProgress: updatedSurahProgress,
-        juzProgress: updatedJuzProgress
       })
     } catch (error) {
       console.error('Error updating surah strength:', error)
     }
   }
 
-  if (isLoading || !userProfile) {
+  if (!user || isLoading) {
     return (
       <PageLayout>
         <div className="container mx-auto px-4 py-8">
@@ -232,13 +159,15 @@ export default function SpacedReviewPage() {
   return (
     <PageLayout>
       <div className="container mx-auto px-4 py-8">
-        <SpacedRepetition
-          userProfile={userProfile}
-          onJuzRevisionUpdate={handleJuzRevisionUpdate}
-          onSurahRevisionUpdate={handleSurahRevisionUpdate}
-          onJuzStrengthChange={handleJuzStrengthChange}
-          onSurahStrengthChange={handleSurahStrengthChange}
-        />
+        {userProfile && (
+          <SpacedRepetition
+            userProfile={userProfile}
+            onJuzRevisionUpdate={handleJuzRevisionUpdate}
+            onSurahRevisionUpdate={handleSurahRevisionUpdate}
+            onJuzStrengthChange={handleJuzStrengthChange}
+            onSurahStrengthChange={handleSurahStrengthChange}
+          />
+        )}
       </div>
     </PageLayout>
   )
