@@ -4,7 +4,6 @@ import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { useAuthContext } from '@/app/lib/contexts/AuthContext'
-import IslamicPattern from '@/app/components/ui/IslamicPattern'
 import { auth } from '@/app/lib/firebase/firebase'
 
 export default function AuthPage() {
@@ -46,29 +45,27 @@ export default function AuthPage() {
   }
 
   return (
-    <main className="min-h-screen bg-emerald-900 relative">
-      <IslamicPattern />
-      
+    <main className="min-h-screen bg-[rgb(28,43,49)] relative">
       <div className="relative z-10">
         <div className="min-h-screen flex items-center justify-center px-4">
           <div className="max-w-md w-full">
-            <div className="bg-white/95 backdrop-blur-sm p-8 rounded-lg shadow-xl">
+            <div className="bg-[#f5f5f5] p-8 rounded-lg shadow-xl">
               <div className="flex items-center mb-6">
                 <Link
                   href="/"
-                  className="text-emerald-900 hover:text-emerald-700 mr-3"
+                  className="text-[rgb(28,43,49)] hover:text-[rgba(28,43,49,0.8)] mr-3"
                 >
                   <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="w-6 h-6">
                     <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 19.5L8.25 12l7.5-7.5" />
                   </svg>
                 </Link>
-                <h2 className="text-2xl font-bold text-emerald-900 flex-1 text-center pr-9">
+                <h2 className="text-2xl font-bold text-[rgb(28,43,49)] flex-1 text-center pr-9">
                   {isSignUp ? 'Create Account' : 'Welcome Back'}
                 </h2>
               </div>
 
               {error && (
-                <div className="bg-red-50 text-red-500 p-3 rounded-md mb-4">
+                <div className="bg-red-50 text-red-600 p-3 rounded-md mb-4">
                   {error}
                 </div>
               )}
@@ -76,7 +73,7 @@ export default function AuthPage() {
               <form onSubmit={handleSubmit} className="space-y-4">
                 {isSignUp && (
                   <div>
-                    <label htmlFor="name" className="block text-emerald-900 mb-1">
+                    <label htmlFor="name" className="block text-[rgb(28,43,49)] mb-1">
                       Full Name
                     </label>
                     <input
@@ -84,14 +81,14 @@ export default function AuthPage() {
                       id="name"
                       value={name}
                       onChange={(e) => setName(e.target.value)}
-                      className="w-full px-3 py-2 border border-emerald-200 rounded-md focus:outline-none focus:ring-2 focus:ring-emerald-500 text-emerald-900"
+                      className="w-full px-3 py-2 bg-white border border-[rgba(28,43,49,0.2)] rounded-md focus:outline-none focus:ring-2 focus:ring-[rgb(138,190,160)] text-[rgb(28,43,49)]"
                       required={isSignUp}
                     />
                   </div>
                 )}
 
                 <div>
-                  <label htmlFor="email" className="block text-emerald-900 mb-1">
+                  <label htmlFor="email" className="block text-[rgb(28,43,49)] mb-1">
                     Email
                   </label>
                   <input
@@ -99,13 +96,13 @@ export default function AuthPage() {
                     id="email"
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
-                    className="w-full px-3 py-2 border border-emerald-200 rounded-md focus:outline-none focus:ring-2 focus:ring-emerald-500 text-emerald-900"
+                    className="w-full px-3 py-2 bg-white border border-[rgba(28,43,49,0.2)] rounded-md focus:outline-none focus:ring-2 focus:ring-[rgb(138,190,160)] text-[rgb(28,43,49)]"
                     required
                   />
                 </div>
 
                 <div>
-                  <label htmlFor="password" className="block text-emerald-900 mb-1">
+                  <label htmlFor="password" className="block text-[rgb(28,43,49)] mb-1">
                     Password
                   </label>
                   <input
@@ -113,23 +110,23 @@ export default function AuthPage() {
                     id="password"
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
-                    className="w-full px-3 py-2 border border-emerald-200 rounded-md focus:outline-none focus:ring-2 focus:ring-emerald-500 text-emerald-900"
+                    className="w-full px-3 py-2 bg-white border border-[rgba(28,43,49,0.2)] rounded-md focus:outline-none focus:ring-2 focus:ring-[rgb(138,190,160)] text-[rgb(28,43,49)]"
                     required
                   />
                 </div>
 
                 {isSignUp && (
-                  <p className="text-sm text-gray-600 text-center">
+                  <p className="text-sm text-[rgba(28,43,49,0.8)] text-center">
                     By creating an account, you agree with our{' '}
-                    <Link href="/terms" className="text-emerald-600 hover:underline">Terms of Service</Link>
+                    <Link href="/terms" className="text-[rgb(138,190,160)] hover:underline">Terms of Service</Link>
                     {' '}and{' '}
-                    <Link href="/privacy" className="text-emerald-600 hover:underline">Privacy Policy</Link>.
+                    <Link href="/privacy" className="text-[rgb(138,190,160)] hover:underline">Privacy Policy</Link>.
                   </p>
                 )}
 
                 <button
                   type="submit"
-                  className="w-full bg-emerald-600 text-white py-2 px-4 rounded-md hover:bg-emerald-700 transition-colors"
+                  className="w-full bg-[rgb(138,190,160)] text-[rgb(28,43,49)] py-2 px-4 rounded-md hover:bg-[rgba(138,190,160,0.9)] transition-colors font-medium"
                 >
                   {isSignUp ? 'Sign Up' : 'Sign In'}
                 </button>
@@ -138,19 +135,19 @@ export default function AuthPage() {
               <div className="mt-4 text-center">
                 <button
                   onClick={() => setIsSignUp(!isSignUp)}
-                  className="text-emerald-600 hover:underline text-sm"
+                  className="text-[rgb(28,43,49)] hover:text-[rgba(138,190,160,0.8)] text-sm hover:underline"
                 >
                   {isSignUp ? 'Already have an account? Sign In' : 'Need an account? Sign Up'}
                 </button>
               </div>
 
               <div className="mt-4 text-center">
-                <span className="text-emerald-900">or</span>
+                <span className="text-[rgb(28,43,49)]">or</span>
               </div>
 
               <button
                 onClick={handleGoogleSignIn}
-                className="w-full mt-4 bg-white border border-emerald-200 text-emerald-900 py-2 px-4 rounded-md hover:bg-emerald-50 transition-colors flex items-center justify-center gap-2"
+                className="w-full mt-4 bg-white border border-[rgba(28,43,49,0.2)] text-[rgb(28,43,49)] py-2 px-4 rounded-md hover:bg-gray-50 transition-colors flex items-center justify-center gap-2"
               >
                 <svg className="w-5 h-5" viewBox="0 0 24 24">
                   <path
